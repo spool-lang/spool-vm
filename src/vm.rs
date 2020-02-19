@@ -65,8 +65,8 @@ impl NewVM {
     fn execute_instruction(&mut self, instruction: &OpCode) -> InstructionResult {
         match instruction {
             OpCode::Get(from_chunk, index) => self.get(index, from_chunk),
-            OpCode::Declare(val, index) => self.declare(index),
-            OpCode::Set(index) => panic!(),
+            OpCode::Declare(writable, index) => self.declare(writable),
+            OpCode::Set(index) => self.set(index),
             OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
         }
@@ -79,13 +79,14 @@ impl NewVM {
         self.push_stack(instance)
     }
 
-    fn declare(&mut self, index: &u16) {
+    fn declare(&mut self, writable: &bool) {
         let instance = self.pop_stack();
-        self.register.set(instance, index)
+        self.register.declare(instance, writable)
     }
 
-    fn set(&mut self) {
-
+    fn set(&mut self, index: &u16) {
+        let instance = self.pop_stack();
+        self.register.set(instance, index)
     }
 
     fn push_stack(&mut self, instance: Instance) {
@@ -123,13 +124,15 @@ impl NewCallFrame {
 }
 
 struct NewRegister {
-    entries: HashMap<u16, RefCell<RegisterEntry>>
+    entries: HashMap<u16, RefCell<RegisterEntry>>,
+    size: usize
 }
 
 impl NewRegister {
     fn new() -> NewRegister {
         NewRegister {
-            entries: Default::default()
+            entries: Default::default(),
+            size: 0
         }
     }
 
@@ -142,15 +145,17 @@ impl NewRegister {
         }
     }
 
+    fn declare(&mut self, instance: Instance, writable: &bool) {
+        let index = self.size;
+        let entry = RegisterEntry::new(instance, *writable);
+        self.entries.insert(index as u16, RefCell::new(entry));
+        self.size += 1;
+    }
+
     fn set(&mut self, instance: Instance, index: &u16) {
         match self.entries.get(index) {
-            None => {
-                let entry = RegisterEntry::new(instance, true);
-                self.entries.insert(*index, RefCell::new(entry));
-            },
-            Some(entry) => {
-                entry.borrow_mut().set(instance)
-            },
+            None => panic!("Attempted to set undeclared variable!"),
+            Some(entry) => entry.borrow_mut().set(instance),
         }
     }
 }
