@@ -3,6 +3,7 @@ use crate::opcode::{Chunk, OpCode};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use crate::instance::Instance::Bool;
 
 type Mut<T> = Rc<RefCell<T>>;
 type MutVec<T> = Vec<Mut<T>>;
@@ -64,6 +65,8 @@ impl NewVM {
 
     fn execute_instruction(&mut self, instruction: &OpCode) -> InstructionResult {
         match instruction {
+            OpCode::GetTrue => self.push_stack(Bool(true)),
+            OpCode::GetFalse => self.push_stack(Bool(false)),
             OpCode::Get(from_chunk, index) => self.get(index, from_chunk),
             OpCode::Declare(writable, index) => self.declare(writable),
             OpCode::Set(index) => self.set(index),
