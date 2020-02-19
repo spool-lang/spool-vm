@@ -3,6 +3,7 @@ use crate::opcode::{Chunk, OpCode};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use crate::instance::Instance::*;
 
 type Mut<T> = Rc<RefCell<T>>;
@@ -73,6 +74,7 @@ impl NewVM {
             OpCode::Subtract => self.subtract(),
             OpCode::Multiply => self.multiply(),
             OpCode::Divide => self.divide(),
+            OpCode::Power => self.pow(),
             OpCode::Greater => self.greater(),
             OpCode::Less => self.less(),
             OpCode::Eq => self.eq(),
@@ -180,6 +182,27 @@ impl NewVM {
             (UInt128(left_num), UInt128(right_num)) => UInt128(left_num / right_num),
             (Float32(left_num), Float32(right_num)) => Float32(left_num / right_num),
             (Float64(left_num), Float64(right_num)) => Float64(left_num / right_num),
+            _ => panic!("The operands cannot be divided!")
+        };
+        self.push_stack(result)
+    }
+
+    fn pow(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let result = match (left, right) {
+            (Byte(left_num), Byte(right_num)) => Byte(left_num.pow(right_num.try_into().unwrap())),
+            (UByte(left_num), UByte(right_num)) => UByte(left_num.pow(right_num.try_into().unwrap())),
+            (Int16(left_num), Int16(right_num)) => Int16(left_num.pow(right_num.try_into().unwrap())),
+            (UInt16(left_num), UInt16(right_num)) => UInt16(left_num.pow(right_num.try_into().unwrap())),
+            (Int32(left_num), Int32(right_num)) => Int32(left_num.pow(right_num.try_into().unwrap())),
+            (UInt32(left_num), UInt32(right_num)) => UInt32(left_num.pow(right_num.try_into().unwrap())),
+            (Int64(left_num), Int64(right_num)) => Int64(left_num.pow(right_num.try_into().unwrap())),
+            (UInt64(left_num), UInt64(right_num)) => UInt64(left_num.pow(right_num.try_into().unwrap())),
+            (Int128(left_num), Int128(right_num)) => Int128(left_num.pow(right_num.try_into().unwrap())),
+            (UInt128(left_num), UInt128(right_num)) => UInt128(left_num.pow(right_num.try_into().unwrap())),
+            (Float32(left_num), Float32(right_num)) => Float32(left_num.powf(right_num.try_into().unwrap())),
+            (Float64(left_num), Float64(right_num)) => Float64(left_num.powf(right_num.try_into().unwrap())),
             _ => panic!("The operands cannot be divided!")
         };
         self.push_stack(result)

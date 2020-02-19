@@ -32,32 +32,7 @@ fn main() {
 
     chunk.write(Get(true, 0));
     chunk.write(Get(true, 1));
-    chunk.write(Greater);
-    chunk.write(Print);
-
-    chunk.write(Get(true, 0));
-    chunk.write(Get(true, 1));
-    chunk.write(Less);
-    chunk.write(Print);
-
-    chunk.write(Get(true, 0));
-    chunk.write(Get(true, 1));
-    chunk.write(Eq);
-    chunk.write(Print);
-
-    chunk.write(Get(true, 0));
-    chunk.write(Get(true, 1));
-    chunk.write(GreaterOrEq);
-    chunk.write(Print);
-
-    chunk.write(Get(true, 0));
-    chunk.write(Get(true, 1));
-    chunk.write(LessOrEq);
-    chunk.write(Print);
-
-    chunk.write(Get(true, 0));
-    chunk.write(Get(true, 1));
-    chunk.write(NotEq);
+    chunk.write(Power);
     chunk.write(Print);
 
     vm.run(chunk)
