@@ -12,7 +12,7 @@ type MutVec<T> = Vec<Mut<T>>;
 pub struct NewVM {
     stack: Vec<Instance>,
     frame_stack: MutVec<NewCallFrame>,
-    register: NewRegister
+    register: VMRegister
 }
 
 impl NewVM {
@@ -20,7 +20,7 @@ impl NewVM {
         NewVM {
             stack: vec![],
             frame_stack: vec![],
-            register: NewRegister::new()
+            register: VMRegister::new()
         }
     }
 
@@ -347,14 +347,14 @@ impl NewCallFrame {
     }
 }
 
-struct NewRegister {
+struct VMRegister {
     entries: HashMap<u16, RefCell<RegisterEntry>>,
-    size: usize
+    size: u16
 }
 
-impl NewRegister {
-    fn new() -> NewRegister {
-        NewRegister {
+impl VMRegister {
+    fn new() -> VMRegister {
+        VMRegister {
             entries: Default::default(),
             size: 0
         }
@@ -380,6 +380,18 @@ impl NewRegister {
         match self.entries.get(index) {
             None => panic!("Attempted to set undeclared variable!"),
             Some(entry) => entry.borrow_mut().set(instance),
+        }
+    }
+
+    fn get_size(&self) -> u16 {
+        self.size
+    }
+
+    fn truncate(&mut self, new_size: u16) {
+        while self.size > new_size {
+            let index = self.size - 1;
+            self.entries.remove(&index);
+            self.size -= 1;
         }
     }
 }
