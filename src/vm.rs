@@ -52,7 +52,6 @@ impl NewVM {
                 None => InstructionResult::Return,
                 Some(instruction) => self.execute_instruction(instruction),
             };
-            println!("{:?}", result);
             match result {
                 InstructionResult::Next => {
                     self.get_call_frame().borrow_mut().pc += 1;
@@ -74,6 +73,12 @@ impl NewVM {
             OpCode::Subtract => self.subtract(),
             OpCode::Multiply => self.multiply(),
             OpCode::Divide => self.divide(),
+            OpCode::Greater => self.greater(),
+            OpCode::Less => self.less(),
+            OpCode::Eq => self.eq(),
+            OpCode::GreaterOrEq => self.greater_eq(),
+            OpCode::LessOrEq => self.less_eq(),
+            OpCode::NotEq => self.not_eq(),
             OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
         }
@@ -178,6 +183,85 @@ impl NewVM {
             _ => panic!("The operands cannot be divided!")
         };
         self.push_stack(result)
+    }
+
+    fn greater(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let value = Bool(self.order(&left, &right));
+        self.push_stack(value)
+    }
+
+    fn less(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let value = Bool(!self.order(&left, &right));
+        self.push_stack(value)
+    }
+
+    fn eq(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let value = Bool(self.equate(&left, &right));
+        self.push_stack(value)
+    }
+
+    fn greater_eq(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let value = Bool(self.order(&left, &right) || self.equate(&left, &right));
+        self.push_stack(value)
+    }
+
+    fn less_eq(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let value = Bool(!self.order(&left, &right) || self.equate(&left, &right));
+        self.push_stack(value)
+    }
+
+    fn not_eq(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let value = Bool(!self.equate(&left, &right));
+        self.push_stack(value)
+    }
+
+    fn order(&mut self, left: &Instance, right: &Instance) -> bool {
+        match (left, right) {
+            (Byte(left_num), Byte(right_num)) => left_num > right_num,
+            (UByte(left_num), UByte(right_num)) => left_num > right_num,
+            (Int16(left_num), Int16(right_num)) => left_num > right_num,
+            (UInt16(left_num), UInt16(right_num)) => left_num > right_num,
+            (Int32(left_num), Int32(right_num)) => left_num > right_num,
+            (UInt32(left_num), UInt32(right_num)) => left_num > right_num,
+            (Int64(left_num), Int64(right_num)) => left_num > right_num,
+            (UInt64(left_num), UInt64(right_num)) => left_num > right_num,
+            (Int128(left_num), Int128(right_num)) => left_num > right_num,
+            (UInt128(left_num), UInt128(right_num)) => left_num > right_num,
+            (Float32(left_num), Float32(right_num)) => left_num > right_num,
+            (Float64(left_num), Float64(right_num)) => left_num > right_num,
+            _ => panic!("The operands cannot be ordered!")
+        }
+    }
+
+    fn equate(&mut self, left: &Instance, right: &Instance) -> bool {
+        match (left, right) {
+            (Byte(left_num), Byte(right_num)) => left_num == right_num,
+            (UByte(left_num), UByte(right_num)) => left_num == right_num,
+            (Int16(left_num), Int16(right_num)) => left_num == right_num,
+            (UInt16(left_num), UInt16(right_num)) => left_num == right_num,
+            (Int32(left_num), Int32(right_num)) => left_num == right_num,
+            (UInt32(left_num), UInt32(right_num)) => left_num == right_num,
+            (Int64(left_num), Int64(right_num)) => left_num == right_num,
+            (UInt64(left_num), UInt64(right_num)) => left_num == right_num,
+            (Int128(left_num), Int128(right_num)) => left_num == right_num,
+            (UInt128(left_num), UInt128(right_num)) => left_num == right_num,
+            (Float32(left_num), Float32(right_num)) => left_num == right_num,
+            (Float64(left_num), Float64(right_num)) => left_num == right_num,
+            (Bool(left_bool), Bool(right_bool)) => left_bool == right_bool,
+            _ => panic!("The operands cannot be equated!")
+        }
     }
 
     fn push_stack(&mut self, instance: Instance) {
