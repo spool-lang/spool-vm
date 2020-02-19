@@ -34,16 +34,4 @@ fn main() {
     chunk.write(Print);
 
     vm.run(chunk)
-
-    /*
-    if args.len() >= 2 {
-        //engine::run(PathBuf::from(&args[1]))
-    }
-    else {
-        println!("Please specify the path to the main script!");
-        process::exit(1);
-    }
-
-    println!("Program execution finished successfully.");
-    */
 }
