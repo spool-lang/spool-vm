@@ -31,6 +31,8 @@ fn main() {
     chunk.add_const(0, UByte(255));
 
     chunk.write(Get(true, 0));
+    chunk.write(Declare(true, 0));
+    chunk.write(Get(false, 0));
     chunk.write(Print);
 
     vm.run(chunk)

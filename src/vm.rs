@@ -2,20 +2,23 @@ use crate::instance::Instance;
 use crate::opcode::{Chunk, OpCode};
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 type Mut<T> = Rc<RefCell<T>>;
 type MutVec<T> = Vec<Mut<T>>;
 
 pub struct NewVM {
     stack: Vec<Instance>,
-    frame_stack: MutVec<NewCallFrame>
+    frame_stack: MutVec<NewCallFrame>,
+    register: NewRegister
 }
 
 impl NewVM {
     pub fn new() -> NewVM {
         NewVM {
             stack: vec![],
-            frame_stack: vec![]
+            frame_stack: vec![],
+            register: NewRegister::new()
         }
     }
 
@@ -61,8 +64,8 @@ impl NewVM {
 
     fn execute_instruction(&mut self, instruction: &OpCode) -> InstructionResult {
         match instruction {
-            OpCode::Get(from_chunk, index) => self.get(index),
-            OpCode::Declare(val, constant) => panic!(),
+            OpCode::Get(from_chunk, index) => self.get(index, from_chunk),
+            OpCode::Declare(val, index) => self.declare(index),
             OpCode::Set(index) => panic!(),
             OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
@@ -70,14 +73,15 @@ impl NewVM {
         return InstructionResult::Next
     }
 
-    fn get(&mut self, index: &u16) {
+    fn get(&mut self, index: &u16, from_chunk: &bool) {
         let chunk = self.get_call_frame().borrow_mut().get_chunk();
-        let instance = chunk.get_const(*index);
+        let instance = if *from_chunk { chunk.get_const(*index) } else { self.register.get(index) };
         self.push_stack(instance)
     }
 
-    fn declare(&mut self) {
-
+    fn declare(&mut self, index: &u16) {
+        let instance = self.pop_stack();
+        self.register.set(instance, index)
     }
 
     fn set(&mut self) {
@@ -115,6 +119,65 @@ impl NewCallFrame {
 
     fn get_chunk(&self) -> Rc<Chunk> {
         return Rc::clone(&self.chunk)
+    }
+}
+
+struct NewRegister {
+    entries: HashMap<u16, RefCell<RegisterEntry>>
+}
+
+impl NewRegister {
+    fn new() -> NewRegister {
+        NewRegister {
+            entries: Default::default()
+        }
+    }
+
+    fn get(&self, index: &u16) -> Instance {
+        match self.entries.get(index) {
+            None => panic!(),
+            Some(entry) => {
+                entry.borrow_mut().get()
+            },
+        }
+    }
+
+    fn set(&mut self, instance: Instance, index: &u16) {
+        match self.entries.get(index) {
+            None => {
+                let entry = RegisterEntry::new(instance, true);
+                self.entries.insert(*index, RefCell::new(entry));
+            },
+            Some(entry) => {
+                entry.borrow_mut().set(instance)
+            },
+        }
+    }
+}
+
+struct RegisterEntry {
+    instance: Instance,
+    writable: bool
+}
+
+impl RegisterEntry {
+    fn new(instance: Instance, writable: bool) -> RegisterEntry {
+        RegisterEntry {
+            instance,
+            writable
+        }
+    }
+
+    fn get(&self) -> Instance {
+        return (&self.instance).clone()
+    }
+
+    fn set(&mut self, new: Instance) {
+        if self.writable {
+            self.instance = new;
+            return;
+        }
+        panic!()
     }
 }
 
