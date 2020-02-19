@@ -1,8 +1,8 @@
 use std::env;
 use std::process;
 
-use silicon;
-use silicon::Config;
+use spool_vm;
+use spool_vm::Config;
 use std::path::PathBuf;
 use crate::runtime::{VM, CallFrame};
 use crate::opcode::OpCode::*;
@@ -13,6 +13,7 @@ use std::rc::Rc;
 use std::collections::HashSet;
 use crate::string_pool::StringPool;
 use std::cell::RefCell;
+use crate::vm::NewVM;
 
 mod runtime;
 mod vm;
@@ -24,7 +25,7 @@ mod math;
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let mut vm = VM::new();
+    let mut vm = NewVM::new();
 
     let mut chunk = Chunk::new();
     chunk.add_const(0, UByte(255));
@@ -32,7 +33,7 @@ fn main() {
     chunk.write(Get(true, 0));
     chunk.write(Print);
 
-    vm.execute_chunk(Rc::new(chunk), Rc::new(RefCell::new(CallFrame::new())), vec![], vec![]);
+    vm.run(chunk)
 
     /*
     if args.len() >= 2 {

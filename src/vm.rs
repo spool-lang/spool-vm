@@ -21,6 +21,7 @@ impl NewVM {
 
     pub fn run(&mut self, chunk: Chunk) {
         let frame = NewCallFrame::new(chunk);
+        self.push_call_frame(frame);
         self.execute()
     }
 
@@ -47,20 +48,32 @@ impl NewVM {
                 None => InstructionResult::Return,
                 Some(instruction) => self.execute_instruction(instruction),
             };
+            println!("{:?}", result);
+            match result {
+                InstructionResult::Next => {
+                    self.get_call_frame().borrow_mut().pc += 1;
+                },
+                InstructionResult::Return => break,
+                InstructionResult::Jump(index) => panic!(),
+            }
         }
     }
 
     fn execute_instruction(&mut self, instruction: &OpCode) -> InstructionResult {
         match instruction {
-            OpCode::Get(from_chunk, index) => panic!(),
-            OpCode::Declare(val, _) => panic!(),
+            OpCode::Get(from_chunk, index) => self.get(index),
+            OpCode::Declare(val, constant) => panic!(),
             OpCode::Set(index) => panic!(),
+            OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
         }
+        return InstructionResult::Next
     }
 
-    fn get(&mut self) {
-
+    fn get(&mut self, index: &u16) {
+        let chunk = self.get_call_frame().borrow_mut().get_chunk();
+        let instance = chunk.get_const(*index);
+        self.push_stack(instance)
     }
 
     fn declare(&mut self) {
@@ -71,12 +84,15 @@ impl NewVM {
 
     }
 
-    fn push_stack(&mut self) {
-
+    fn push_stack(&mut self, instance: Instance) {
+        self.stack.push(instance)
     }
 
-    fn pop_stack(&mut self) {
-
+    fn pop_stack(&mut self) -> Instance {
+        return match self.stack.pop() {
+            None => panic!("Attempted to pop an empty stack!"),
+            Some(instance) => instance,
+        }
     }
 }
 
@@ -102,6 +118,7 @@ impl NewCallFrame {
     }
 }
 
+#[derive(Debug)]
 enum InstructionResult {
     Next,
     Return,
