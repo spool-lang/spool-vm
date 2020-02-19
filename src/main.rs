@@ -29,10 +29,19 @@ fn main() {
     let mut chunk = Chunk::new();
     chunk.add_const(0, Int16(2));
     chunk.add_const(1, Int16(4));
+    chunk.add_const(2, Bool(true));
 
     chunk.write(Get(true, 0));
     chunk.write(Get(true, 1));
     chunk.write(Power);
+    chunk.write(Print);
+
+    chunk.write(Get(true, 1));
+    chunk.write(IntNegate);
+    chunk.write(Print);
+
+    chunk.write(Get(true, 2));
+    chunk.write(LogicNegate);
     chunk.write(Print);
 
     vm.run(chunk)

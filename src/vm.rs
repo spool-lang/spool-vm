@@ -75,12 +75,14 @@ impl NewVM {
             OpCode::Multiply => self.multiply(),
             OpCode::Divide => self.divide(),
             OpCode::Power => self.pow(),
+            OpCode::IntNegate => self.num_negate(),
             OpCode::Greater => self.greater(),
             OpCode::Less => self.less(),
             OpCode::Eq => self.eq(),
             OpCode::GreaterOrEq => self.greater_eq(),
             OpCode::LessOrEq => self.less_eq(),
             OpCode::NotEq => self.not_eq(),
+            OpCode::LogicNegate => self.logic_negate(),
             OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
         }
@@ -208,6 +210,21 @@ impl NewVM {
         self.push_stack(result)
     }
 
+    fn num_negate(&mut self) {
+        let instance = self.pop_stack();
+        let result = match instance {
+            Byte(num) => Byte(-num),
+            Int16(num) => Int16(-num),
+            Int32(num) => Int32(-num),
+            Int64(num) => Int64(-num),
+            Int128(num) => Int128(-num),
+            Float32(num) => Float32(-num),
+            Float64(num) => Float64(-num),
+            _ => panic!("Operand cannot be negated!")
+        };
+        self.push_stack(result)
+    }
+
     fn greater(&mut self) {
         let left = self.pop_stack();
         let right = self.pop_stack();
@@ -285,6 +302,15 @@ impl NewVM {
             (Bool(left_bool), Bool(right_bool)) => left_bool == right_bool,
             _ => panic!("The operands cannot be equated!")
         }
+    }
+
+    fn logic_negate(&mut self) {
+        let instance = self.pop_stack();
+        if let Bool(b) = instance {
+            self.push_stack(Bool(!b));
+            return;
+        }
+        panic!("Logic negation can only be applied to booleans!")
     }
 
     fn push_stack(&mut self, instance: Instance) {
