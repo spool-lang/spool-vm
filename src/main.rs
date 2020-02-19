@@ -20,7 +20,6 @@ mod vm;
 mod opcode;
 mod instance;
 mod string_pool;
-mod math;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -28,14 +27,27 @@ fn main() {
     let mut vm = NewVM::new();
 
     let mut chunk = Chunk::new();
-    chunk.add_const(0, UByte(255));
-    chunk.add_const(1, UByte(254));
+    chunk.add_const(0, Int16(2));
+    chunk.add_const(1, Int16(4));
 
     chunk.write(Get(true, 0));
-    chunk.write(Declare(true, 0));
     chunk.write(Get(true, 1));
-    chunk.write(Set(0));
-    chunk.write(Get(false, 0));
+    chunk.write(Add);
+    chunk.write(Print);
+
+    chunk.write(Get(true, 0));
+    chunk.write(Get(true, 1));
+    chunk.write(Subtract);
+    chunk.write(Print);
+
+    chunk.write(Get(true, 0));
+    chunk.write(Get(true, 1));
+    chunk.write(Multiply);
+    chunk.write(Print);
+
+    chunk.write(Get(true, 0));
+    chunk.write(Get(true, 1));
+    chunk.write(Divide);
     chunk.write(Print);
 
     vm.run(chunk)

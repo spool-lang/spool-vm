@@ -3,7 +3,7 @@ use crate::opcode::{Chunk, OpCode};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use crate::instance::Instance::Bool;
+use crate::instance::Instance::*;
 
 type Mut<T> = Rc<RefCell<T>>;
 type MutVec<T> = Vec<Mut<T>>;
@@ -70,6 +70,10 @@ impl NewVM {
             OpCode::Get(from_chunk, index) => self.get(index, from_chunk),
             OpCode::Declare(writable, index) => self.declare(writable),
             OpCode::Set(index) => self.set(index),
+            OpCode::Add => self.add(),
+            OpCode::Subtract => self.subtract(),
+            OpCode::Multiply => self.multiply(),
+            OpCode::Divide => self.divide(),
             OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
         }
@@ -90,6 +94,90 @@ impl NewVM {
     fn set(&mut self, index: &u16) {
         let instance = self.pop_stack();
         self.register.set(instance, index)
+    }
+
+    fn add(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let result = match (left, right) {
+            (Byte(left_num), Byte(right_num)) => Byte(left_num + right_num),
+            (UByte(left_num), UByte(right_num)) => UByte(left_num + right_num),
+            (Int16(left_num), Int16(right_num)) => Int16(left_num + right_num),
+            (UInt16(left_num), UInt16(right_num)) => UInt16(left_num + right_num),
+            (Int32(left_num), Int32(right_num)) => Int32(left_num + right_num),
+            (UInt32(left_num), UInt32(right_num)) => UInt32(left_num + right_num),
+            (Int64(left_num), Int64(right_num)) => Int64(left_num + right_num),
+            (UInt64(left_num), UInt64(right_num)) => UInt64(left_num + right_num),
+            (Int128(left_num), Int128(right_num)) => Int128(left_num + right_num),
+            (UInt128(left_num), UInt128(right_num)) => UInt128(left_num + right_num),
+            (Float32(left_num), Float32(right_num)) => Float32(left_num + right_num),
+            (Float64(left_num), Float64(right_num)) => Float64(left_num + right_num),
+            _ => panic!("The operands cannot be added!")
+        };
+        self.push_stack(result)
+    }
+
+    fn subtract(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let result = match (left, right) {
+            (Byte(left_num), Byte(right_num)) => Byte(left_num - right_num),
+            (UByte(left_num), UByte(right_num)) => UByte(left_num - right_num),
+            (Int16(left_num), Int16(right_num)) => Int16(left_num - right_num),
+            (UInt16(left_num), UInt16(right_num)) => UInt16(left_num - right_num),
+            (Int32(left_num), Int32(right_num)) => Int32(left_num - right_num),
+            (UInt32(left_num), UInt32(right_num)) => UInt32(left_num - right_num),
+            (Int64(left_num), Int64(right_num)) => Int64(left_num - right_num),
+            (UInt64(left_num), UInt64(right_num)) => UInt64(left_num - right_num),
+            (Int128(left_num), Int128(right_num)) => Int128(left_num - right_num),
+            (UInt128(left_num), UInt128(right_num)) => UInt128(left_num - right_num),
+            (Float32(left_num), Float32(right_num)) => Float32(left_num - right_num),
+            (Float64(left_num), Float64(right_num)) => Float64(left_num - right_num),
+            _ => panic!("The operands cannot be subtracted!")
+        };
+        self.push_stack(result)
+    }
+
+    fn multiply(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let result = match (left, right) {
+            (Byte(left_num), Byte(right_num)) => Byte(left_num * right_num),
+            (UByte(left_num), UByte(right_num)) => UByte(left_num * right_num),
+            (Int16(left_num), Int16(right_num)) => Int16(left_num * right_num),
+            (UInt16(left_num), UInt16(right_num)) => UInt16(left_num * right_num),
+            (Int32(left_num), Int32(right_num)) => Int32(left_num * right_num),
+            (UInt32(left_num), UInt32(right_num)) => UInt32(left_num * right_num),
+            (Int64(left_num), Int64(right_num)) => Int64(left_num * right_num),
+            (UInt64(left_num), UInt64(right_num)) => UInt64(left_num * right_num),
+            (Int128(left_num), Int128(right_num)) => Int128(left_num * right_num),
+            (UInt128(left_num), UInt128(right_num)) => UInt128(left_num * right_num),
+            (Float32(left_num), Float32(right_num)) => Float32(left_num * right_num),
+            (Float64(left_num), Float64(right_num)) => Float64(left_num * right_num),
+            _ => panic!("The operands cannot be multiplied!")
+        };
+        self.push_stack(result)
+    }
+
+    fn divide(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        let result = match (left, right) {
+            (Byte(left_num), Byte(right_num)) => Byte(left_num / right_num),
+            (UByte(left_num), UByte(right_num)) => UByte(left_num / right_num),
+            (Int16(left_num), Int16(right_num)) => Int16(left_num / right_num),
+            (UInt16(left_num), UInt16(right_num)) => UInt16(left_num / right_num),
+            (Int32(left_num), Int32(right_num)) => Int32(left_num / right_num),
+            (UInt32(left_num), UInt32(right_num)) => UInt32(left_num / right_num),
+            (Int64(left_num), Int64(right_num)) => Int64(left_num / right_num),
+            (UInt64(left_num), UInt64(right_num)) => UInt64(left_num / right_num),
+            (Int128(left_num), Int128(right_num)) => Int128(left_num / right_num),
+            (UInt128(left_num), UInt128(right_num)) => UInt128(left_num / right_num),
+            (Float32(left_num), Float32(right_num)) => Float32(left_num / right_num),
+            (Float64(left_num), Float64(right_num)) => Float64(left_num / right_num),
+            _ => panic!("The operands cannot be divided!")
+        };
+        self.push_stack(result)
     }
 
     fn push_stack(&mut self, instance: Instance) {
