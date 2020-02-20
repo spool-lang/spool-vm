@@ -82,24 +82,6 @@ impl VM {
 
     pub fn execute_instruction(&mut self, op_code: &OpCode, chunk: Rc<Chunk>, frame: Rc<RefCell<CallFrame>>) -> InstructionResult {
         match op_code {
-            OpCode::GetTrue => self.stack.push(Bool(true)),
-            OpCode::GetFalse => self.stack.push(Bool(false)),
-            OpCode::Get(get_const, index) => self.get_variable(*index, *get_const, chunk, frame),
-            OpCode::Declare(is_const, type_index) => self.declare_variable(*type_index, *is_const, frame),
-            OpCode::Set(index) => self.set_variable(*index, chunk, frame),
-            OpCode::Add => self.add_operands(frame.borrow().stack_offset),
-            OpCode::Subtract => self.subtract_operands(frame.borrow().stack_offset),
-            OpCode::Multiply => self.multiply_operands(frame.borrow().stack_offset),
-            OpCode::Divide => self.divide_operands(frame.borrow().stack_offset),
-            OpCode::Power => self.pow_operands(frame.borrow().stack_offset),
-            OpCode::IntNegate => self.negate_operand(frame.borrow().stack_offset),
-            OpCode::LogicNegate => self.logic_negate_operand(frame.borrow().stack_offset),
-            OpCode::Less => self.compare_operand_size(false, false, frame.borrow().stack_offset),
-            OpCode::LessOrEq => self.compare_operand_size(false, true, frame.borrow().stack_offset),
-            OpCode::Greater => self.compare_operand_size(true, false, frame.borrow().stack_offset),
-            OpCode::GreaterOrEq => self.compare_operand_size(true, true, frame.borrow().stack_offset),
-            OpCode::Eq => self.equate_operands(false, frame.borrow().stack_offset),
-            OpCode::NotEq => self.equate_operands(true, frame.borrow().stack_offset),
             OpCode::Is(type_index) => self.type_test(*type_index, frame.borrow().stack_offset),
             OpCode::Concat => self.concat(frame.borrow().stack_offset),
             OpCode::Jump(value, index) => if !value {self.jump(*index, chunk); self.jumped = true} else if self.try_jump(*index, chunk, frame.borrow().stack_offset) {self.jumped = true},
@@ -111,6 +93,7 @@ impl VM {
             OpCode::EnterScope(size) => self.enter_scope(*size, frame),
             OpCode::ExitScope => self.exit_scope(frame),
             OpCode::Print => println!("{}", self.get_stack_top(frame.borrow().stack_offset)),
+            _ => panic!("This instruction is unimplemented!")
         };
         return Continue
     }
