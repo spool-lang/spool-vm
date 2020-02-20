@@ -7,8 +7,8 @@ use crate::runtime::Register;
 pub enum OpCode {
     GetTrue,
     GetFalse,
-    Get(bool, u16),
-    Declare(bool, u16),
+    Get(u16, bool),
+    Declare(u16, bool),
     Set(u16),
     Add,
     Subtract,

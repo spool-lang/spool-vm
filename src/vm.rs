@@ -77,8 +77,8 @@ impl NewVM {
         match instruction {
             OpCode::GetTrue => self.push_stack(Bool(true)),
             OpCode::GetFalse => self.push_stack(Bool(false)),
-            OpCode::Get(from_chunk, index) => self.get(index, from_chunk),
-            OpCode::Declare(writable, index) => self.declare(writable),
+            OpCode::Get(index, from_chunk) => self.get(index, from_chunk),
+            OpCode::Declare(index, writable) => self.declare(writable),
             OpCode::Set(index) => self.set(index),
             OpCode::Add => self.add(),
             OpCode::Subtract => self.subtract(),
