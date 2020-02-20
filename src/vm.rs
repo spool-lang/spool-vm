@@ -13,6 +13,7 @@ type MutVec<T> = Vec<Mut<T>>;
 
 pub struct NewVM {
     stack: Vec<Instance>,
+    type_stack: Vec<Rc<Type>>,
     frame_stack: MutVec<NewCallFrame>,
     register: VMRegister,
     string_pool: StringPool,
@@ -25,6 +26,7 @@ impl NewVM {
         let type_registry = TypeRegistry::new(&mut string_pool);
         NewVM {
             stack: vec![],
+            type_stack: vec![],
             frame_stack: vec![],
             register: VMRegister::new(),
             string_pool,
