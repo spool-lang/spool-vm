@@ -28,18 +28,19 @@ fn main() {
 
     let mut chunk = Chunk::new();
     chunk.add_const(0, Bool(true));
+    chunk.add_const(1, Bool(false));
     chunk.jump_table.insert(0, 3);
 
     chunk.write(Get(0, true));
-    chunk.write(LogicNegate);
-    chunk.write(Declare(0, true));
-    chunk.write(Get(0, false));
-    chunk.write(LogicNegate);
-    chunk.write(Set(0));
-    chunk.write(Get(0, false));
-    chunk.write(Jump(0, true));
+    chunk.write(Declare(false));
     chunk.write(Get(0, false));
     chunk.write(Print);
+    chunk.write(ExitScope(1));
+    chunk.write(Get(1, true));
+    chunk.write(Declare(false));
+    chunk.write(Get(0, false));
+    chunk.write(Print);
+
 
     vm.run(chunk)
 }

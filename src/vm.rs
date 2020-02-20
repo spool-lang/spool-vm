@@ -85,7 +85,7 @@ impl NewVM {
             OpCode::GetTrue => self.push_stack(Bool(true)),
             OpCode::GetFalse => self.push_stack(Bool(false)),
             OpCode::Get(index, from_chunk) => self.get(index, from_chunk),
-            OpCode::Declare(index, writable) => self.declare(writable),
+            OpCode::Declare(writable) => self.declare(writable),
             OpCode::Set(index) => self.set(index),
             OpCode::Add => self.add(),
             OpCode::Subtract => self.subtract(),
@@ -101,6 +101,7 @@ impl NewVM {
             OpCode::NotEq => self.not_eq(),
             OpCode::LogicNegate => self.logic_negate(),
             OpCode::Jump(index, conditional) => return self.jump(index, conditional),
+            OpCode::ExitScope(to_clear) => self.register.clear_space(*to_clear),
             OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
         }
@@ -416,11 +417,13 @@ impl VMRegister {
         self.size
     }
 
-    fn truncate(&mut self, new_size: u16) {
-        while self.size > new_size {
+    fn clear_space(&mut self, to_clear: u16) {
+        if self.size == 0 { return; }
+        for x  in 0..to_clear {
             let index = self.size - 1;
             self.entries.remove(&index);
             self.size -= 1;
+            if self.size == 0 { break; }
         }
     }
 }

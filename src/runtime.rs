@@ -89,8 +89,6 @@ impl VM {
             OpCode::InitArray(size) => self.make_array(*size, frame.borrow().stack_offset),
             OpCode::IndexGet => self.index_get(frame.borrow().stack_offset),
             OpCode::IndexSet => self.index_set(frame.borrow().stack_offset),
-            OpCode::EnterScope(size) => self.enter_scope(*size, frame),
-            OpCode::ExitScope => self.exit_scope(frame),
             OpCode::Print => println!("{}", self.get_stack_top(frame.borrow().stack_offset)),
             _ => panic!("This instruction is unimplemented!")
         };
