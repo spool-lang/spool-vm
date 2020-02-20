@@ -84,7 +84,6 @@ impl VM {
         match op_code {
             OpCode::Is(type_index) => self.type_test(*type_index, frame.borrow().stack_offset),
             OpCode::Concat => self.concat(frame.borrow().stack_offset),
-            OpCode::Jump(value, index) => if !value {self.jump(*index, chunk); self.jumped = true} else if self.try_jump(*index, chunk, frame.borrow().stack_offset) {self.jumped = true},
             OpCode::Call => {},
             OpCode::Return(return_instance) => if *return_instance { return ReturnWith(self.get_stack_top(frame.borrow().stack_offset)) } else { return Return }
             OpCode::InitArray(size) => self.make_array(*size, frame.borrow().stack_offset),

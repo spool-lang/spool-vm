@@ -25,14 +25,14 @@ pub enum OpCode {
     NotEq,
     Is(u16),
     Concat,
-    Jump(bool, u16),
     Call,
-    Return(bool),
     InitArray(u16),
     IndexGet,
     IndexSet,
     EnterScope(u16),
     ExitScope,
+    Jump(u16, bool),
+    Return(bool),
     // Debug only.
     Print,
 }

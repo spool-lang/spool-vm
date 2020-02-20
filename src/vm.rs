@@ -7,6 +7,7 @@ use std::convert::TryInto;
 use crate::instance::Instance::*;
 use crate::string_pool::StringPool;
 use std::sync::Arc;
+use crate::vm::InstructionResult::{GoTo, Next};
 
 type Mut<T> = Rc<RefCell<T>>;
 type MutVec<T> = Vec<Mut<T>>;
@@ -57,7 +58,6 @@ impl NewVM {
         loop {
             let chunk = self.get_call_frame().borrow_mut().get_chunk();
             let pc = self.get_call_frame().borrow_mut().pc;
-            let option = chunk.get(pc);
 
             let result = match chunk.get(pc) {
                 None => InstructionResult::Return,
@@ -68,7 +68,14 @@ impl NewVM {
                     self.get_call_frame().borrow_mut().pc += 1;
                 },
                 InstructionResult::Return => break,
-                InstructionResult::Jump(index) => panic!(),
+                InstructionResult::GoTo(index) => {
+                    let chunk = self.get_call_frame().borrow_mut().get_chunk();
+                    let option = chunk.jump_table.get(&index);
+                    match option {
+                        None => panic!(),
+                        Some(new_pc) => self.get_call_frame().borrow_mut().pc = *new_pc,
+                    }
+                },
             }
         }
     }
@@ -93,6 +100,7 @@ impl NewVM {
             OpCode::LessOrEq => self.less_eq(),
             OpCode::NotEq => self.not_eq(),
             OpCode::LogicNegate => self.logic_negate(),
+            OpCode::Jump(index, conditional) => return self.jump(index, conditional),
             OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
         }
@@ -323,6 +331,17 @@ impl NewVM {
         panic!("Logic negation can only be applied to booleans!")
     }
 
+    fn jump(&mut self, index: &u16, conditional: &bool) -> InstructionResult {
+        if *conditional {
+            let instance = self.pop_stack();
+            if let Bool(value) = instance {
+                return if value { GoTo(*index) } else { Next }
+            }
+            panic!("Unexpected type!")
+        }
+        return GoTo(*index)
+    }
+
     fn push_stack(&mut self, instance: Instance) {
         self.stack.push(instance)
     }
@@ -496,5 +515,5 @@ impl TypeRegistry {
 enum InstructionResult {
     Next,
     Return,
-    Jump(u16)
+    GoTo(u16)
 }
