@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use crate::instance::Instance;
 use crate::runtime::Register;
+use std::rc::Rc;
 
 // OpCode instructions. All instructions should be 4 bytes at the most.
 #[derive(Debug)]
@@ -43,6 +44,7 @@ pub struct Chunk {
     pub is_locked: bool,
     pub jump_table: HashMap<u16, usize>,
     pub const_table:  HashMap<u16, Instance>,
+    pub type_table: HashMap<u16, Rc<String>>
 }
 
 impl Chunk {
@@ -51,7 +53,8 @@ impl Chunk {
             op_codes: vec![],
             is_locked: false,
             jump_table: Default::default(),
-            const_table: Default::default()
+            const_table: Default::default(),
+            type_table: Default::default()
         }
     }
 
@@ -67,6 +70,13 @@ impl Chunk {
             panic!("Attempted to write to locked chunk!")
         }
         self.const_table.insert(index,constant);
+    }
+
+    pub fn add_type(&mut self, index: u16, name: Rc<String>) {
+        if self.is_locked {
+            panic!("Attempted to write to locked chunk!")
+        }
+        self.type_table.insert(index,name);
     }
 
     pub fn lock(&mut self) {

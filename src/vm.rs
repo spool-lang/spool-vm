@@ -41,13 +41,6 @@ impl NewVM {
         self.execute()
     }
 
-    pub fn get_type_id(&self, name: String) -> u16 {
-        match self.type_registry.ids.get(&name) {
-            None => 0,
-            Some(id) => *id,
-        }
-    }
-
     fn push_call_frame(&mut self, frame: NewCallFrame) {
         &self.frame_stack.push(Rc::new(RefCell::new(frame)));
     }
@@ -334,7 +327,7 @@ impl NewVM {
 
     fn is(&mut self) {
         let instance = self.pop_stack();
-        let instance_type = self.type_registry.get_by_name(instance.get_canonical_name());
+        let instance_type = self.type_registry.get(instance.get_canonical_name());
         let comparison_type = self.pop_type_stack();
 
         let result = comparison_type.matches_type(instance_type);
@@ -362,7 +355,12 @@ impl NewVM {
     }
 
     fn get_type(&mut self, id: &u16) {
-        let _type = self.type_registry.get(*id);
+        let type_name = match self.get_call_frame().borrow().chunk.type_table.get(id) {
+            None => panic!(),
+            Some(name) => Rc::clone(name),
+        };
+
+        let _type = self.type_registry.get(type_name);
         self.push_type_stack(_type)
     }
 
@@ -489,21 +487,17 @@ impl RegisterEntry {
 }
 
 pub(crate) struct TypeRegistry {
-    types: HashMap<u16, Rc<Type>>,
-    ids: HashMap<Rc<String>, u16>,
-    size: u16
+    types: HashMap<Rc<String>, Rc<Type>>
 }
 
 impl TypeRegistry {
     fn new(string_pool: &mut StringPool) -> TypeRegistry {
         let mut _self = TypeRegistry {
-            types: Default::default(),
-            ids: Default::default(),
-            size: 0
+            types: Default::default()
         };
         _self.register(Type::new(string_pool.pool_str("silicon.lang.Object"), None));
 
-        let object_type = _self.get_by_name(string_pool.pool_str("silicon.lang.Object"));
+        let object_type = _self.get(string_pool.pool_str("silicon.lang.Object"));
         _self.register(Type::new(string_pool.pool_str("silicon.lang.Object"), Some(Rc::clone(&object_type))));
         _self.register(Type::new(string_pool.pool_str("silicon.lang.Boolean"), Some(Rc::clone(&object_type))));
         _self.register(Type::new(string_pool.pool_str("silicon.lang.Byte"), Some(Rc::clone(&object_type))));
@@ -527,26 +521,14 @@ impl TypeRegistry {
     }
 
     pub(crate) fn register(&mut self, _type: Type) {
-        let index = self.size;
         let name = Rc::clone(&_type.canonical_name);
-
-        self.size += 1;
-
-        self.ids.insert(name, index);
-        self.types.insert(index, Rc::from(_type));
+        self.types.insert(name, Rc::from(_type));
     }
 
-    pub(crate) fn get(&self, index: u16) -> Rc<Type> {
-        match self.types.get(&index) {
-            None => panic!("Attempted to retrieve non-existent type!"),
-            Some(t) => Rc::clone(t),
-        }
-    }
-
-    pub(crate) fn get_by_name(&self, name: Rc<String>) -> Rc<Type> {
-        match self.ids.get(&name) {
+    pub(crate) fn get(&self, name: Rc<String>) -> Rc<Type> {
+        match self.types.get(&name) {
             None => panic!("Type {} does not exist.", name),
-            Some(i) => self.get(*i),
+            Some(_type) => Rc::clone(_type),
         }
     }
 }
