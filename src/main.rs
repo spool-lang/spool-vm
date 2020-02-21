@@ -27,24 +27,24 @@ fn main() {
     let mut vm = NewVM::new();
 
     let mut chunk = Chunk::new();
-    chunk.add_const(0, Bool(true));
-    chunk.jump_table.insert(0, 3);
-    chunk.add_type(0, Rc::from("silicon.lang.Boolean".to_string()));
-    chunk.add_type(1, Rc::from("silicon.lang.Int16".to_string()));
-    chunk.add_type(2, Rc::from("silicon.lang.Object".to_string()));
+    chunk.write_const(0, Bool(true));
+    chunk.write_jump(0, 3);
+    chunk.write_type(0, Rc::from("silicon.lang.Boolean".to_string()));
+    chunk.write_type(1, Rc::from("silicon.lang.Int16".to_string()));
+    chunk.write_type(2, Rc::from("silicon.lang.Object".to_string()));
 
-    chunk.write(Get(0, true));
-    chunk.write(GetType(0));
-    chunk.write(Is);
-    chunk.write(Print);
-    chunk.write(Get(0, true));
-    chunk.write(GetType(1));
-    chunk.write(Is);
-    chunk.write(Print);
-    chunk.write(Get(0, true));
-    chunk.write(GetType(2));
-    chunk.write(Is);
-    chunk.write(Print);
+    chunk.write_instruction(Get(0, true));
+    chunk.write_instruction(GetType(0));
+    chunk.write_instruction(Is);
+    chunk.write_instruction(Print);
+    chunk.write_instruction(Get(0, true));
+    chunk.write_instruction(GetType(1));
+    chunk.write_instruction(Is);
+    chunk.write_instruction(Print);
+    chunk.write_instruction(Get(0, true));
+    chunk.write_instruction(GetType(2));
+    chunk.write_instruction(Is);
+    chunk.write_instruction(Print);
 
     vm.run(chunk)
 }

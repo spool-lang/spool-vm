@@ -58,21 +58,28 @@ impl Chunk {
         }
     }
 
-    pub fn write(&mut self, op : OpCode) {
+    pub fn write_instruction(&mut self, op : OpCode) {
         if self.is_locked {
             panic!("Attempted to write to locked chunk!")
         }
         self.op_codes.push(op)
     }
 
-    pub fn add_const(&mut self, index: u16, constant: Instance) {
+    pub fn write_jump(&mut self, index: u16, point: usize) {
+        if self.is_locked {
+            panic!("Attempted to write to locked chunk!")
+        }
+        self.jump_table.insert(index,point);
+    }
+
+    pub fn write_const(&mut self, index: u16, constant: Instance) {
         if self.is_locked {
             panic!("Attempted to write to locked chunk!")
         }
         self.const_table.insert(index,constant);
     }
 
-    pub fn add_type(&mut self, index: u16, name: Rc<String>) {
+    pub fn write_type(&mut self, index: u16, name: Rc<String>) {
         if self.is_locked {
             panic!("Attempted to write to locked chunk!")
         }
