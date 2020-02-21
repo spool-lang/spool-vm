@@ -46,7 +46,7 @@ pub enum Instance {
     //Represents a class object.
     //Class(Box<Class>)
     //Represents a function.
-    // Func(Rc<Function>),
+    Func(Function),
     Void
 }
 
@@ -119,7 +119,7 @@ impl Display for Instance {
 
                 write!(f, "{}]", array_string)
             },
-
+            Instance::Func(_) => write!(f, "{}", "function"),
             Instance::Void => write!(f, "{}", "void"),
         };
     }
@@ -157,6 +157,12 @@ impl Type {
             }
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub enum Function {
+    Standard(Vec<Rc<Type>>, Rc<Chunk>),
+    Native
 }
 
 #[derive(Debug)]

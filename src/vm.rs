@@ -1,12 +1,13 @@
-use crate::instance::{Instance, Type};
-use crate::opcode::{Chunk, OpCode};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::sync::Arc;
+
 use crate::instance::Instance::*;
 use crate::string_pool::StringPool;
-use std::sync::Arc;
+use crate::instance::{Instance, Type, Function};
+use crate::opcode::{Chunk, OpCode};
 use crate::vm::InstructionResult::{GoTo, Next};
 
 type Mut<T> = Rc<RefCell<T>>;
@@ -36,9 +37,13 @@ impl NewVM {
     }
 
     pub fn run(&mut self, chunk: Chunk) {
-        let frame = NewCallFrame::new(chunk);
+        let frame = NewCallFrame::new(Rc::new(chunk));
         self.push_call_frame(frame);
         self.execute()
+    }
+
+    pub fn type_from_name(&self, name: &str) -> Rc<Type> {
+        self.type_registry.get(Rc::from(name.to_string()))
     }
 
     fn push_call_frame(&mut self, frame: NewCallFrame) {
@@ -61,7 +66,10 @@ impl NewVM {
 
             let result = match chunk.get(pc) {
                 None => InstructionResult::Return,
-                Some(instruction) => self.execute_instruction(instruction),
+                Some(instruction) => {
+                    println!("{:?}", instruction);
+                    self.execute_instruction(instruction)
+                },
             };
             match result {
                 InstructionResult::Next => {
@@ -78,6 +86,7 @@ impl NewVM {
                 },
             }
         }
+        self.frame_stack.pop();
     }
 
     fn execute_instruction(&mut self, instruction: &OpCode) -> InstructionResult {
@@ -103,6 +112,7 @@ impl NewVM {
             OpCode::LogicNegate => self.logic_negate(),
             OpCode::Jump(index, conditional) => return self.jump(index, conditional),
             OpCode::ExitScope(to_clear) => self.register.clear_space(*to_clear),
+            OpCode::Call => self.call(),
             OpCode::GetType(id) => self.get_type(id),
             OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
@@ -111,8 +121,13 @@ impl NewVM {
     }
 
     fn get(&mut self, index: &u16, from_chunk: &bool) {
-        let chunk = self.get_call_frame().borrow_mut().get_chunk();
-        let instance = if *from_chunk { chunk.get_const(*index) } else { self.register.get(index) };
+        let chunk = self.get_call_frame().borrow().get_chunk();
+        let instance = if *from_chunk {
+            chunk.get_const(*index)
+        } else {
+            let true_index = &self.get_call_frame().borrow().register_size + index;
+            self.register.get(&true_index)
+        };
         self.push_stack(instance)
     }
 
@@ -123,7 +138,8 @@ impl NewVM {
 
     fn set(&mut self, index: &u16) {
         let instance = self.pop_stack();
-        self.register.set(instance, index)
+        let true_index = &self.get_call_frame().borrow().register_size + index;
+        self.register.set(instance, &true_index)
     }
 
     fn add(&mut self) {
@@ -354,6 +370,41 @@ impl NewVM {
         return GoTo(*index)
     }
 
+    fn call(&mut self) {
+        let func = self.pop_stack();
+        if let Func(function) = func {
+            match function {
+                Function::Standard(param_types, chunk) => {
+                    let mut args: Vec<Instance> = vec![];
+                    for param_type in param_types{
+                        let instance = self.pop_stack();
+                        let instance_type = self.type_registry.get(instance.get_canonical_name());
+                        if !param_type.matches_type(instance_type) {panic!()}
+
+                        args.push(instance)
+                    }
+                    let stack_size = self.stack.len();
+                    let type_stack_size = self.type_stack.len();
+                    let register_size = self.register.size;
+                    for arg in args {
+                        self.register.declare(arg, &false)
+                    }
+                    let frame = NewCallFrame::new_inner(chunk.clone(), stack_size, type_stack_size, register_size);
+                    self.push_call_frame(frame);
+                    self.execute();
+                    self.stack.truncate(stack_size);
+                    self.type_stack.truncate(type_stack_size);
+                    let new_register_size = self.register.size;
+                    self.register.clear_space(new_register_size - register_size)
+                },
+                Function::Native => panic!(),
+            }
+        }
+        else {
+            panic!()
+        };
+    }
+
     fn get_type(&mut self, id: &u16) {
         let type_name = match self.get_call_frame().borrow().chunk.type_table.get(id) {
             None => panic!(),
@@ -369,6 +420,10 @@ impl NewVM {
     }
 
     fn pop_stack(&mut self) -> Instance {
+        let size = self.get_call_frame().borrow().stack_size;
+        let true_size = self.stack.len();
+        if true_size <= size { panic!("Attempted to pop an empty stack!") }
+
         return match self.stack.pop() {
             None => panic!("Attempted to pop an empty stack!"),
             Some(instance) => instance,
@@ -380,8 +435,12 @@ impl NewVM {
     }
 
     fn pop_type_stack(&mut self) -> Rc<Type> {
+        let size = self.get_call_frame().borrow().type_stack_size;
+        let true_size = self.type_stack.len();
+        if true_size <= size { panic!("Attempted to pop an empty type stack!") }
+
         return match self.type_stack.pop() {
-            None => panic!("Attempted to pop an empty stack!"),
+            None => panic!("Attempted to pop an empty type stack!"),
             Some(_type) => _type,
         }
     }
@@ -390,17 +449,29 @@ impl NewVM {
 struct NewCallFrame {
     chunk: Rc<Chunk>,
     pc: usize,
-    stack_top: usize,
-    register_top: usize
+    stack_size: usize,
+    type_stack_size: usize,
+    register_size: u16
 }
 
 impl NewCallFrame {
-    fn new(chunk: Chunk) -> NewCallFrame {
+    fn new(chunk: Rc<Chunk>) -> NewCallFrame {
         NewCallFrame {
-            chunk: Rc::new(chunk),
+            chunk,
             pc: 0,
-            stack_top: 0,
-            register_top: 0
+            stack_size: 0,
+            type_stack_size: 0,
+            register_size: 0
+        }
+    }
+
+    fn new_inner(chunk: Rc<Chunk>, stack_size: usize, type_stack_size: usize, register_size: u16) -> NewCallFrame {
+        NewCallFrame {
+            chunk,
+            pc: 0,
+            stack_size,
+            type_stack_size,
+            register_size
         }
     }
 
@@ -496,9 +567,8 @@ impl TypeRegistry {
             types: Default::default()
         };
         _self.register(Type::new(string_pool.pool_str("silicon.lang.Object"), None));
-
         let object_type = _self.get(string_pool.pool_str("silicon.lang.Object"));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Object"), Some(Rc::clone(&object_type))));
+
         _self.register(Type::new(string_pool.pool_str("silicon.lang.Boolean"), Some(Rc::clone(&object_type))));
         _self.register(Type::new(string_pool.pool_str("silicon.lang.Byte"), Some(Rc::clone(&object_type))));
         _self.register(Type::new(string_pool.pool_str("silicon.lang.UByte"), Some(Rc::clone(&object_type))));

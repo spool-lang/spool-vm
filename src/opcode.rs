@@ -26,12 +26,12 @@ pub enum OpCode {
     Is,
     LogicNegate,
     Concat,
-    Call,
     InitArray(u16),
     IndexGet,
     IndexSet,
     Jump(u16, bool),
     ExitScope(u16),
+    Call,
     Return(bool),
     GetType(u16),
     // Debug only.
