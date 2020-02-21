@@ -82,13 +82,9 @@ impl VM {
 
     pub fn execute_instruction(&mut self, op_code: &OpCode, chunk: Rc<Chunk>, frame: Rc<RefCell<CallFrame>>) -> InstructionResult {
         match op_code {
-            OpCode::Is(type_index) => self.type_test(*type_index, frame.borrow().stack_offset),
             OpCode::Concat => self.concat(frame.borrow().stack_offset),
             OpCode::Call => {},
             OpCode::Return(return_instance) => if *return_instance { return ReturnWith(self.get_stack_top(frame.borrow().stack_offset)) } else { return Return }
-            OpCode::InitArray(size) => self.make_array(*size, frame.borrow().stack_offset),
-            OpCode::IndexGet => self.index_get(frame.borrow().stack_offset),
-            OpCode::IndexSet => self.index_set(frame.borrow().stack_offset),
             OpCode::Print => println!("{}", self.get_stack_top(frame.borrow().stack_offset)),
             _ => panic!("This instruction is unimplemented!")
         };
@@ -242,12 +238,6 @@ impl VM {
         }
     }
 
-    fn type_test(&mut self, type_index: u16, stack_offset: usize) {
-        let operand = self.get_stack_top(stack_offset);
-        let _type = self.type_registry.get(type_index);
-        self.stack.push(Bool(_type.is(&operand)))
-    }
-
     fn try_jump(&mut self, jump_index: u16, chunk: Rc<Chunk>, stack_offset: usize) -> bool {
         let should_jump = !self.test_logic(stack_offset);
         if should_jump {
@@ -271,25 +261,6 @@ impl VM {
             _ => panic!()
         };
         panic!()
-    }
-
-    pub fn make_array(&mut self, array_size: u16, stack_offset: usize) {
-        let array : Vec<Instance> = self.split_stack(array_size as usize, stack_offset);
-        let mut _type = self.type_registry.get(0);
-        let mut check = false;
-        for instance in &array {
-            if !check {
-                _type = self.type_registry.get_by_name(instance.get_canonical_name());
-                check = true
-            }
-            else {
-                if !_type.is(instance) {
-                    _type = self.type_registry.get(0);
-                }
-            }
-        }
-
-        self.stack.push(Array(Rc::new(RefCell::new(array)), Rc::clone(&_type)));
     }
 
     pub fn index_get(&mut self, stack_offset: usize) {
@@ -325,29 +296,6 @@ impl VM {
                     None => panic!("Invalid string index.")
                 }
             }
-            _ => panic!("The instance is not indexable!")
-        }
-    }
-
-    pub fn index_set(&mut self, stack_offset: usize) {
-        let item = self.get_stack_top(stack_offset);
-        let index = self.get_stack_top(stack_offset);
-        let array = self.get_stack_top(stack_offset);
-
-        match array {
-            Array(vec, _type) => {
-                let mut index_num = 0;
-                match index {
-                    Byte(num) => index_num = num as usize,
-                    UByte(num) => index_num = num as usize,
-                    Int16(num) => index_num = num as usize,
-                    UInt16(num) => index_num = num as usize,
-                    _ => panic!("Invalid array index.")
-                };
-                vec.borrow_mut().remove(index_num);
-                if _type.is(&item) { vec.borrow_mut().insert(index_num, item) }
-                else { panic!("Type mismatch!") }
-            },
             _ => panic!("The instance is not indexable!")
         }
     }
@@ -512,25 +460,6 @@ impl TypeRegistry {
             name_map: Default::default(),
             size: 0
         };
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Object")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Boolean")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Byte")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UByte")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int16")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt16")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int32")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt32")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int64")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt64")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int128")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt128")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Float32")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Float64")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Char")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.String")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Array")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Func")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Void")));
         _self
     }
 

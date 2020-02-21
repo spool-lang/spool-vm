@@ -41,6 +41,13 @@ impl NewVM {
         self.execute()
     }
 
+    pub fn get_type_id(&self, name: String) -> u16 {
+        match self.type_registry.ids.get(&name) {
+            None => 0,
+            Some(id) => *id,
+        }
+    }
+
     fn push_call_frame(&mut self, frame: NewCallFrame) {
         &self.frame_stack.push(Rc::new(RefCell::new(frame)));
     }
@@ -99,9 +106,11 @@ impl NewVM {
             OpCode::GreaterOrEq => self.greater_eq(),
             OpCode::LessOrEq => self.less_eq(),
             OpCode::NotEq => self.not_eq(),
+            OpCode::Is => self.is(),
             OpCode::LogicNegate => self.logic_negate(),
             OpCode::Jump(index, conditional) => return self.jump(index, conditional),
             OpCode::ExitScope(to_clear) => self.register.clear_space(*to_clear),
+            OpCode::GetType(id) => self.get_type(id),
             OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
         }
@@ -323,6 +332,15 @@ impl NewVM {
         }
     }
 
+    fn is(&mut self) {
+        let instance = self.pop_stack();
+        let instance_type = self.type_registry.get_by_name(instance.get_canonical_name());
+        let comparison_type = self.pop_type_stack();
+
+        let result = comparison_type.matches_type(instance_type);
+        self.push_stack(Bool(result))
+    }
+
     fn logic_negate(&mut self) {
         let instance = self.pop_stack();
         if let Bool(b) = instance {
@@ -343,6 +361,11 @@ impl NewVM {
         return GoTo(*index)
     }
 
+    fn get_type(&mut self, id: &u16) {
+        let _type = self.type_registry.get(*id);
+        self.push_type_stack(_type)
+    }
+
     fn push_stack(&mut self, instance: Instance) {
         self.stack.push(instance)
     }
@@ -351,6 +374,17 @@ impl NewVM {
         return match self.stack.pop() {
             None => panic!("Attempted to pop an empty stack!"),
             Some(instance) => instance,
+        }
+    }
+
+    fn push_type_stack(&mut self, _type: Rc<Type>) {
+        self.type_stack.push(_type)
+    }
+
+    fn pop_type_stack(&mut self) -> Rc<Type> {
+        return match self.type_stack.pop() {
+            None => panic!("Attempted to pop an empty stack!"),
+            Some(_type) => _type,
         }
     }
 }
@@ -454,7 +488,7 @@ impl RegisterEntry {
     }
 }
 
-struct TypeRegistry {
+pub(crate) struct TypeRegistry {
     types: HashMap<u16, Rc<Type>>,
     ids: HashMap<Rc<String>, u16>,
     size: u16
@@ -467,29 +501,32 @@ impl TypeRegistry {
             ids: Default::default(),
             size: 0
         };
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Object")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Boolean")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Byte")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UByte")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int16")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt16")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int32")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt32")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int64")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt64")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int128")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt128")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Float32")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Float64")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Char")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.String")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Array")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Func")));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Void")));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Object"), None));
+
+        let object_type = _self.get_by_name(string_pool.pool_str("silicon.lang.Object"));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Object"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Boolean"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Byte"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.UByte"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int16"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt16"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int32"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt32"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int64"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt64"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int128"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt128"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Float32"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Float64"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Char"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.String"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Array"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Func"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.lang.Void"), Some(Rc::clone(&object_type))));
         _self
     }
 
-    fn register(&mut self, _type: Type) {
+    pub(crate) fn register(&mut self, _type: Type) {
         let index = self.size;
         let name = Rc::clone(&_type.canonical_name);
 
@@ -499,14 +536,14 @@ impl TypeRegistry {
         self.types.insert(index, Rc::from(_type));
     }
 
-    fn get(&self, index: u16) -> Rc<Type> {
+    pub(crate) fn get(&self, index: u16) -> Rc<Type> {
         match self.types.get(&index) {
             None => panic!("Attempted to retrieve non-existent type!"),
             Some(t) => Rc::clone(t),
         }
     }
 
-    fn get_by_name(&self, name: Rc<String>) -> Rc<Type> {
+    pub(crate) fn get_by_name(&self, name: Rc<String>) -> Rc<Type> {
         match self.ids.get(&name) {
             None => panic!("Type {} does not exist.", name),
             Some(i) => self.get(*i),

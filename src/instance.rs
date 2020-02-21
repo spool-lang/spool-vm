@@ -3,10 +3,12 @@ use crate::opcode::Chunk;
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter, Error};
 use std::fmt;
+use crate::vm::TypeRegistry;
 
 // Represents instances created at runtime
 #[derive(Clone, Debug)]
 pub enum Instance {
+    Object,
     Bool(bool),
     Byte(i8),
     UByte(u8),
@@ -49,10 +51,10 @@ pub enum Instance {
 }
 
 impl Instance {
-
     pub fn get_canonical_name(&self) -> Rc<String> {
         Rc::new(
             match self {
+                Instance::Object => "silicon.lang.Object",
                 Instance::Bool(_) => "silicon.lang.Boolean",
                 Instance::Byte(_) => "silicon.lang.Byte",
                 Instance::UByte(_) => "silicon.lang.UByte",
@@ -69,7 +71,6 @@ impl Instance {
                 Instance::Char(_) => "silicon.lang.Char",
                 Instance::Str(_) => "silicon.lang.String",
                 Instance::Array(_, _) => "silicon.lang.Array",
-
                 Instance::Void => "silicon.lang.Void",
                 _ => ""
             }.to_string()
@@ -80,6 +81,7 @@ impl Instance {
 impl Display for Instance {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         return match self {
+            Instance::Object => write!(f, "{}", "object"),
             Instance::Bool(boolean) => write!(f, "{}", boolean),
             Instance::Byte(byte) => write!(f, "{}b", byte),
             Instance::UByte(ubyte) => write!(f, "{}ub", ubyte),
@@ -118,7 +120,7 @@ impl Display for Instance {
                 write!(f, "{}]", array_string)
             },
 
-            Instance::Void => write!(f, "{}", "void")
+            Instance::Void => write!(f, "{}", "void"),
         };
     }
 }
@@ -126,65 +128,34 @@ impl Display for Instance {
 #[derive(Debug)]
 pub struct Type {
     pub(crate) canonical_name: Rc<String>,
-    is_generic: bool,
-    type_args: Vec<Rc<Type>>
+    supertype: Option<Rc<Type>>,
 }
 
 impl Type {
-    pub fn new(canonical_name: Rc<String>) -> Type {
+    pub fn new(canonical_name: Rc<String>, supertype: Option<Rc<Type>>) -> Type {
         Type {
             canonical_name,
-            is_generic: false,
-            type_args: vec![]
-        }
-    }
-
-    pub fn new_generic(canonical_name: Rc<String>) -> Type {
-        Type {
-            canonical_name,
-            is_generic: true,
-            type_args: vec![]
+            supertype,
         }
     }
 
     pub fn get_canonical_name(&self) -> Rc<String> {
         let mut actual_name = format!("{}", self.canonical_name);
-        if self.type_args.len() > 0 {
-            actual_name.push_str("<");
-            let mut i: usize = 0;
-            for _type in &self.type_args {
-                let type_name = format!("{}", _type.get_canonical_name());
-                actual_name.push_str(type_name.as_str());
-                if i < *&self.type_args.len() {
-                    actual_name.push(',')
-                }
-            }
-            actual_name.push_str(">");
-        }
-
         Rc::new(actual_name)
     }
 
-    pub fn reify(&self, type_args: Vec<Rc<Type>>) {
-        if self.is_generic {
-            if type_args.len() == self.type_args.len() {
-                Type {
-                    canonical_name: Rc::clone(&self.canonical_name),
-                    is_generic: false,
-                    type_args
-                };
+    pub(crate) fn matches_type(&self, other: Rc<Type>) -> bool {
+        let mut other = other;
+
+        loop {
+            if &*self.canonical_name == &*other.canonical_name {
+                return true
             }
-            panic!("Error during reification process.")
+            match &other.supertype {
+                None => return false,
+                Some(thing) => other = Rc::clone(thing),
+            }
         }
-        panic!("Attempted to reify non-generic type.")
-
-    }
-}
-
-impl Type {
-
-    pub fn is(&self, instance: &Instance) -> bool {
-        &*self.canonical_name == &*"silicon.lang.Object".to_string() || &*self.canonical_name == &*instance.get_canonical_name()
     }
 }
 
@@ -210,7 +181,7 @@ impl Variable {
             panic!("Attempted to set constant variable!")
         }
 
-        if self._type.is(&instance) {
+        if true {
             self.stored = instance;
             return;
         }

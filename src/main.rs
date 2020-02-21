@@ -26,21 +26,26 @@ fn main() {
 
     let mut vm = NewVM::new();
 
+    let bool_id = vm.get_type_id("silicon.lang.Boolean".to_string());
+    let i16_id = vm.get_type_id("silicon.lang.Int16".to_string());
+    let object_id =  vm.get_type_id("silicon.lang.Object".to_string());
+
     let mut chunk = Chunk::new();
     chunk.add_const(0, Bool(true));
-    chunk.add_const(1, Bool(false));
     chunk.jump_table.insert(0, 3);
 
     chunk.write(Get(0, true));
-    chunk.write(Declare(false));
-    chunk.write(Get(0, false));
+    chunk.write(GetType(bool_id));
+    chunk.write(Is);
     chunk.write(Print);
-    chunk.write(ExitScope(1));
-    chunk.write(Get(1, true));
-    chunk.write(Declare(false));
-    chunk.write(Get(0, false));
+    chunk.write(Get(0, true));
+    chunk.write(GetType(i16_id));
+    chunk.write(Is);
     chunk.write(Print);
-
+    chunk.write(Get(0, true));
+    chunk.write(GetType(object_id));
+    chunk.write(Is);
+    chunk.write(Print);
 
     vm.run(chunk)
 }
