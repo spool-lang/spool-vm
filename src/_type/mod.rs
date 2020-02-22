@@ -1,8 +1,9 @@
 use std::rc::Rc;
-use crate::instance::Function;
+use crate::instance::{Function, Instance};
 use crate::instance::Function::NativeInstance;
 use std::collections::HashMap;
 use crate::string_pool::StringPool;
+use crate::vm::NewVM;
 
 pub(crate) mod number;
 
@@ -73,11 +74,8 @@ impl TypeBuilder {
         return self
     }
 
-    fn instance_function(mut self, name: Rc<String>, instance_function: Function) -> TypeBuilder {
-        match instance_function {
-            Function::NativeInstance(_, _) => self.instance_functions.insert(name, instance_function),
-            _ => panic!(),
-        };
+    fn instance_function(mut self, name: Rc<String>, arity: u8, func: fn(&mut NewVM, Instance, Vec<Instance>) -> Instance) -> TypeBuilder {
+        self.instance_functions.insert(name, NativeInstance(arity, func));
         self
     }
 
@@ -183,7 +181,7 @@ pub(crate) mod string_type {
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.String"))
             .supertype(type_registry.get(Rc::new("silicon.core.Object".to_string())))
-            .instance_function(string_pool.pool_str("capitalize"), Function::NativeInstance(0, capitalize))
+            .instance_function(string_pool.pool_str("capitalize"), 0, capitalize)
             .build();
         type_registry.register(_type)
     }

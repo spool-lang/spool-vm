@@ -49,6 +49,7 @@ fn main() {
     chunk.write_const(3, Str(vm.pool_string("hello")));
 
     chunk.write_name(0, vm.pool_string("capitalize"));
+    chunk.write_name(1, vm.pool_string("toInt64"));
 
     chunk.write_instruction(Get(0, true));
     chunk.write_instruction(Get(1, true));
@@ -57,6 +58,9 @@ fn main() {
     chunk.write_instruction(Call);
     chunk.write_instruction(Get(3, true));
     chunk.write_instruction(CallInstance(0));
+    chunk.write_instruction(Print);
+    chunk.write_instruction(Get(0, true));
+    chunk.write_instruction(CallInstance(1));
     chunk.write_instruction(Print);
 
     vm.run(chunk)
