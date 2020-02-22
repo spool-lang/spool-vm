@@ -72,6 +72,7 @@ impl Instance {
                 Instance::Char(_) => "silicon.core.Char",
                 Instance::Str(_) => "silicon.core.String",
                 Instance::Array(_, _) => "silicon.core.Array",
+                Instance::Func(_) => "silicon.core.Func",
                 Instance::Void => "silicon.core.Void",
                 _ => ""
             }.to_string()
