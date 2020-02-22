@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use crate::instance::Instance;
-use crate::runtime::Register;
 use std::rc::Rc;
 
 // OpCode instructions. All instructions should be 4 bytes at the most.

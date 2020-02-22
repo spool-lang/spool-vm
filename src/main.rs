@@ -4,7 +4,6 @@ use std::process;
 use spool_vm;
 use spool_vm::Config;
 use std::path::PathBuf;
-use crate::runtime::{VM, CallFrame};
 use crate::opcode::OpCode::*;
 use crate::instance::{Instance, Instance::*, Function};
 use std::intrinsics::transmute;
@@ -16,7 +15,6 @@ use std::cell::RefCell;
 use crate::vm::NewVM;
 use crate::instance::Function::Native;
 
-mod runtime;
 mod vm;
 mod opcode;
 mod instance;
