@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use crate::opcode::Chunk;
+use crate::instruction::Chunk;
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter, Error, Debug};
 use std::fmt;

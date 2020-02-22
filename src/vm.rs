@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::instance::Instance::*;
 use crate::string_pool::StringPool;
 use crate::instance::{Instance, Function};
-use crate::opcode::{Chunk, OpCode};
+use crate::instruction::{Chunk, Instruction};
 use crate::vm::InstructionResult::{GoTo, Next, ReturnVoid, ReturnValue};
 use crate::_type::{Type, TypeRegistry};
 
@@ -99,34 +99,34 @@ impl NewVM {
         }
     }
 
-    fn execute_instruction(&mut self, instruction: &OpCode) -> InstructionResult {
+    fn execute_instruction(&mut self, instruction: &Instruction) -> InstructionResult {
         match instruction {
-            OpCode::GetTrue => self.push_stack(Bool(true)),
-            OpCode::GetFalse => self.push_stack(Bool(false)),
-            OpCode::Get(index, from_chunk) => self.get(index, from_chunk),
-            OpCode::Declare(writable) => self.declare(writable),
-            OpCode::Set(index) => self.set(index),
-            OpCode::Add => self.add(),
-            OpCode::Subtract => self.subtract(),
-            OpCode::Multiply => self.multiply(),
-            OpCode::Divide => self.divide(),
-            OpCode::Power => self.pow(),
-            OpCode::IntNegate => self.num_negate(),
-            OpCode::Greater => self.greater(),
-            OpCode::Less => self.less(),
-            OpCode::Eq => self.eq(),
-            OpCode::GreaterOrEq => self.greater_eq(),
-            OpCode::LessOrEq => self.less_eq(),
-            OpCode::NotEq => self.not_eq(),
-            OpCode::Is => self.is(),
-            OpCode::LogicNegate => self.logic_negate(),
-            OpCode::Jump(index, conditional) => return self.jump(index, conditional),
-            OpCode::ExitScope(to_clear) => self.register.clear_space(*to_clear),
-            OpCode::Call => self.call(),
-            OpCode::CallInstance(name_index) => self.call_instance(*name_index),
-            OpCode::Return(with_value) => return self.return_from(*with_value),
-            OpCode::GetType(id) => self.get_type(id),
-            OpCode::Print => println!("{}", self.pop_stack()),
+            Instruction::GetTrue => self.push_stack(Bool(true)),
+            Instruction::GetFalse => self.push_stack(Bool(false)),
+            Instruction::Get(index, from_chunk) => self.get(index, from_chunk),
+            Instruction::Declare(writable) => self.declare(writable),
+            Instruction::Set(index) => self.set(index),
+            Instruction::Add => self.add(),
+            Instruction::Subtract => self.subtract(),
+            Instruction::Multiply => self.multiply(),
+            Instruction::Divide => self.divide(),
+            Instruction::Power => self.pow(),
+            Instruction::IntNegate => self.num_negate(),
+            Instruction::Greater => self.greater(),
+            Instruction::Less => self.less(),
+            Instruction::Eq => self.eq(),
+            Instruction::GreaterOrEq => self.greater_eq(),
+            Instruction::LessOrEq => self.less_eq(),
+            Instruction::NotEq => self.not_eq(),
+            Instruction::Is => self.is(),
+            Instruction::LogicNegate => self.logic_negate(),
+            Instruction::Jump(index, conditional) => return self.jump(index, conditional),
+            Instruction::ExitScope(to_clear) => self.register.clear_space(*to_clear),
+            Instruction::Call => self.call(),
+            Instruction::CallInstance(name_index) => self.call_instance(*name_index),
+            Instruction::Return(with_value) => return self.return_from(*with_value),
+            Instruction::GetType(id) => self.get_type(id),
+            Instruction::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
         }
         return InstructionResult::Next

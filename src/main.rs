@@ -4,10 +4,10 @@ use std::process;
 use spool_vm;
 use spool_vm::Config;
 use std::path::PathBuf;
-use crate::opcode::OpCode::*;
+use crate::instruction::Instruction::*;
 use crate::instance::{Instance, Instance::*, Function};
 use std::intrinsics::transmute;
-use crate::opcode::{Chunk, OpCode};
+use crate::instruction::{Chunk, Instruction};
 use std::rc::Rc;
 use std::collections::HashSet;
 use crate::string_pool::StringPool;
@@ -16,7 +16,7 @@ use crate::vm::NewVM;
 use crate::instance::Function::Native;
 
 mod vm;
-mod opcode;
+mod instruction;
 mod instance;
 mod string_pool;
 
@@ -30,11 +30,11 @@ fn main() {
     let mut func_chunk = Chunk::new();
     func_chunk.write_const(0, Int16(8));
     func_chunk.write_const(1, Int16(32));
-    func_chunk.write_instruction(OpCode::Get(0, true));
+    func_chunk.write_instruction(Instruction::Get(0, true));
     func_chunk.write_instruction(Print);
-    func_chunk.write_instruction(OpCode::Get(0, false));
+    func_chunk.write_instruction(Instruction::Get(0, false));
     func_chunk.write_instruction(Print);
-    func_chunk.write_instruction(OpCode::Get(1, true));
+    func_chunk.write_instruction(Instruction::Get(1, true));
     func_chunk.write_instruction(Return(true));
 
     let i16_type = vm.type_from_name("silicon.core.Int16");
