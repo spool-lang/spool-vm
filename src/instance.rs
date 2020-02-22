@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use crate::opcode::Chunk;
 use std::cell::RefCell;
-use std::fmt::{Display, Formatter, Error};
+use std::fmt::{Display, Formatter, Error, Debug};
 use std::fmt;
 use crate::vm::TypeRegistry;
 
@@ -159,10 +159,19 @@ impl Type {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Function {
     Standard(Vec<Rc<Type>>, Rc<Chunk>),
-    Native
+    Native(u8, fn(Vec<Instance>) -> Instance)
+}
+
+impl Debug for Function {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        return match self {
+            Function::Standard(_, _) => write!(f, "{:?}", "function"),
+            Function::Native(_, _) => write!(f, "{:?}", "native_function"),
+        }
+    }
 }
 
 #[derive(Debug)]

@@ -28,10 +28,13 @@ fn main() {
 
     let mut func_chunk = Chunk::new();
     func_chunk.write_const(0, Int16(8));
+    func_chunk.write_const(1, Int16(32));
     func_chunk.write_instruction(OpCode::Get(0, true));
     func_chunk.write_instruction(Print);
     func_chunk.write_instruction(OpCode::Get(0, false));
     func_chunk.write_instruction(Print);
+    func_chunk.write_instruction(OpCode::Get(1, true));
+    func_chunk.write_instruction(Return(true));
 
     let i16_type = vm.type_from_name("silicon.lang.Int16");
 
@@ -44,6 +47,7 @@ fn main() {
     chunk.write_instruction(Get(0, true));
     chunk.write_instruction(Get(1, true));
     chunk.write_instruction(Call);
+    chunk.write_instruction(Print);
 
     vm.run(chunk)
 }

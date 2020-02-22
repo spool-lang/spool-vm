@@ -8,7 +8,7 @@ use crate::instance::Instance::*;
 use crate::string_pool::StringPool;
 use crate::instance::{Instance, Type, Function};
 use crate::opcode::{Chunk, OpCode};
-use crate::vm::InstructionResult::{GoTo, Next};
+use crate::vm::InstructionResult::{GoTo, Next, ReturnVoid, ReturnValue};
 
 type Mut<T> = Rc<RefCell<T>>;
 type MutVec<T> = Vec<Mut<T>>;
@@ -39,7 +39,7 @@ impl NewVM {
     pub fn run(&mut self, chunk: Chunk) {
         let frame = NewCallFrame::new(Rc::new(chunk));
         self.push_call_frame(frame);
-        self.execute()
+        self.execute();
     }
 
     pub fn type_from_name(&self, name: &str) -> Rc<Type> {
@@ -59,15 +59,14 @@ impl NewVM {
         }
     }
 
-    fn execute(&mut self) {
+    fn execute(&mut self) -> Instance {
         loop {
             let chunk = self.get_call_frame().borrow_mut().get_chunk();
             let pc = self.get_call_frame().borrow_mut().pc;
 
             let result = match chunk.get(pc) {
-                None => InstructionResult::Return,
+                None => InstructionResult::ReturnVoid,
                 Some(instruction) => {
-                    println!("{:?}", instruction);
                     self.execute_instruction(instruction)
                 },
             };
@@ -75,7 +74,14 @@ impl NewVM {
                 InstructionResult::Next => {
                     self.get_call_frame().borrow_mut().pc += 1;
                 },
-                InstructionResult::Return => break,
+                InstructionResult::ReturnVoid => {
+                    self.frame_stack.pop();
+                    return Void
+                },
+                InstructionResult::ReturnValue(value) => {
+                    self.frame_stack.pop();
+                    return value
+                }
                 InstructionResult::GoTo(index) => {
                     let chunk = self.get_call_frame().borrow_mut().get_chunk();
                     let option = chunk.jump_table.get(&index);
@@ -86,7 +92,6 @@ impl NewVM {
                 },
             }
         }
-        self.frame_stack.pop();
     }
 
     fn execute_instruction(&mut self, instruction: &OpCode) -> InstructionResult {
@@ -113,6 +118,7 @@ impl NewVM {
             OpCode::Jump(index, conditional) => return self.jump(index, conditional),
             OpCode::ExitScope(to_clear) => self.register.clear_space(*to_clear),
             OpCode::Call => self.call(),
+            OpCode::Return(with_value) => return self.return_from(*with_value),
             OpCode::GetType(id) => self.get_type(id),
             OpCode::Print => println!("{}", self.pop_stack()),
             _ => panic!("This instruction is unimplemented!")
@@ -391,18 +397,40 @@ impl NewVM {
                     }
                     let frame = NewCallFrame::new_inner(chunk.clone(), stack_size, type_stack_size, register_size);
                     self.push_call_frame(frame);
-                    self.execute();
+                    let returned=  self.execute();
+
                     self.stack.truncate(stack_size);
                     self.type_stack.truncate(type_stack_size);
                     let new_register_size = self.register.size;
-                    self.register.clear_space(new_register_size - register_size)
+                    self.register.clear_space(new_register_size - register_size);
+
+                    if let Void = returned {
+                    } else {
+                        self.push_stack(returned)
+                    };
                 },
-                Function::Native => panic!(),
+                Function::Native(arity, function) => {
+                    let mut args: Vec<Instance> = vec![];
+                    for x in 0..arity {
+                        args.push(self.pop_stack())
+                    }
+                    function(args);
+                },
             }
         }
         else {
             panic!()
         };
+    }
+
+    fn return_from(&mut self, with_value: bool) -> InstructionResult {
+        if with_value {
+            let value = self.pop_stack();
+            ReturnValue(value)
+        }
+        else {
+            ReturnVoid
+        }
     }
 
     fn get_type(&mut self, id: &u16) {
@@ -416,7 +444,7 @@ impl NewVM {
     }
 
     fn push_stack(&mut self, instance: Instance) {
-        self.stack.push(instance)
+        self.stack.push(instance);
     }
 
     fn pop_stack(&mut self) -> Instance {
@@ -606,6 +634,7 @@ impl TypeRegistry {
 #[derive(Debug)]
 enum InstructionResult {
     Next,
-    Return,
+    ReturnVoid,
+    ReturnValue(Instance),
     GoTo(u16)
 }

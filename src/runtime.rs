@@ -83,7 +83,6 @@ impl VM {
     pub fn execute_instruction(&mut self, op_code: &OpCode, chunk: Rc<Chunk>, frame: Rc<RefCell<CallFrame>>) -> InstructionResult {
         match op_code {
             OpCode::Concat => self.concat(frame.borrow().stack_offset),
-            OpCode::Call => {},
             OpCode::Return(return_instance) => if *return_instance { return ReturnWith(self.get_stack_top(frame.borrow().stack_offset)) } else { return Return }
             OpCode::Print => println!("{}", self.get_stack_top(frame.borrow().stack_offset)),
             _ => panic!("This instruction is unimplemented!")
