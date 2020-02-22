@@ -415,6 +415,9 @@ impl NewVM {
                     if let Void = returned {
                     } else { self.push_stack(returned) };
                 },
+                Function::NativeInstance(arity, function) => {
+                    panic!()
+                }
             }
         }
         else {

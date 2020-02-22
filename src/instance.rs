@@ -162,7 +162,8 @@ impl Type {
 #[derive(Clone)]
 pub enum Function {
     Standard(Vec<Rc<Type>>, Rc<Chunk>),
-    Native(u8, fn(&mut NewVM, Vec<Instance>) -> Instance)
+    Native(u8, fn(&mut NewVM, Vec<Instance>) -> Instance),
+    NativeInstance(u8, fn(&mut NewVM, Instance, Vec<Instance>) -> Instance)
 }
 
 impl Debug for Function {
@@ -170,6 +171,7 @@ impl Debug for Function {
         return match self {
             Function::Standard(_, _) => write!(f, "{:?}", "function"),
             Function::Native(_, _) => write!(f, "{:?}", "native_function"),
+            Function::NativeInstance(_, _) => write!(f, "{:?}", "native_function")
         }
     }
 }
