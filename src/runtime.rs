@@ -2,11 +2,12 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::slice::Chunks;
 use crate::opcode::{OpCode, Chunk};
-use crate::instance::{Instance, Instance::*, Variable, Type};
+use crate::instance::{Instance, Instance::*, Variable};
 use std::convert::TryInto;
 use crate::runtime::InstructionResult::{Return, Continue, ReturnWith, ExitScope};
 use std::cell::RefCell;
 use crate::string_pool::StringPool;
+use crate::_type::Type;
 
 pub struct NewCallFrame {
     register_offset: u16,

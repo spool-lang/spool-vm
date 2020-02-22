@@ -6,7 +6,7 @@ use spool_vm::Config;
 use std::path::PathBuf;
 use crate::runtime::{VM, CallFrame};
 use crate::opcode::OpCode::*;
-use crate::instance::{Instance, Instance::*, Type, Function};
+use crate::instance::{Instance, Instance::*, Function};
 use std::intrinsics::transmute;
 use crate::opcode::{Chunk, OpCode};
 use std::rc::Rc;
@@ -21,6 +21,8 @@ mod vm;
 mod opcode;
 mod instance;
 mod string_pool;
+
+mod _type;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -37,7 +39,7 @@ fn main() {
     func_chunk.write_instruction(OpCode::Get(1, true));
     func_chunk.write_instruction(Return(true));
 
-    let i16_type = vm.type_from_name("silicon.lang.Int16");
+    let i16_type = vm.type_from_name("silicon.core.Int16");
     let func = Function::Standard(vec![i16_type.clone()], Rc::from(func_chunk));
 
     let native_func = Native(1, print);

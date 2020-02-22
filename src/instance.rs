@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::fmt::{Display, Formatter, Error, Debug};
 use std::fmt;
 use crate::vm::{TypeRegistry, NewVM};
+use crate::_type::Type;
 
 // Represents instances created at runtime
 #[derive(Clone, Debug)]
@@ -54,24 +55,24 @@ impl Instance {
     pub fn get_canonical_name(&self) -> Rc<String> {
         Rc::new(
             match self {
-                Instance::Object => "silicon.lang.Object",
-                Instance::Bool(_) => "silicon.lang.Boolean",
-                Instance::Byte(_) => "silicon.lang.Byte",
-                Instance::UByte(_) => "silicon.lang.UByte",
-                Instance::Int16(_) => "silicon.lang.Int16",
-                Instance::UInt16(_) => "silicon.lang.UInt16",
-                Instance::Int32(_) => "silicon.lang.Int32",
-                Instance::UInt32(_) => "silicon.lang.UInt32",
-                Instance::Int64(_) => "silicon.lang.Int64",
-                Instance::UInt64(_) => "silicon.lang.UInt64",
-                Instance::Int128(_) => "silicon.lang.Int128",
-                Instance::UInt128(_) => "silicon.lang.UInt128",
-                Instance::Float32(_) => "silicon.lang.Float32",
-                Instance::Float64(_) => "silicon.lang.Float64",
-                Instance::Char(_) => "silicon.lang.Char",
-                Instance::Str(_) => "silicon.lang.String",
-                Instance::Array(_, _) => "silicon.lang.Array",
-                Instance::Void => "silicon.lang.Void",
+                Instance::Object => "silicon.core.Object",
+                Instance::Bool(_) => "silicon.core.Boolean",
+                Instance::Byte(_) => "silicon.core.Byte",
+                Instance::UByte(_) => "silicon.core.UByte",
+                Instance::Int16(_) => "silicon.core.Int16",
+                Instance::UInt16(_) => "silicon.core.UInt16",
+                Instance::Int32(_) => "silicon.core.Int32",
+                Instance::UInt32(_) => "silicon.core.UInt32",
+                Instance::Int64(_) => "silicon.core.Int64",
+                Instance::UInt64(_) => "silicon.core.UInt64",
+                Instance::Int128(_) => "silicon.core.Int128",
+                Instance::UInt128(_) => "silicon.core.UInt128",
+                Instance::Float32(_) => "silicon.core.Float32",
+                Instance::Float64(_) => "silicon.core.Float64",
+                Instance::Char(_) => "silicon.core.Char",
+                Instance::Str(_) => "silicon.core.String",
+                Instance::Array(_, _) => "silicon.core.Array",
+                Instance::Void => "silicon.core.Void",
                 _ => ""
             }.to_string()
         )
@@ -122,40 +123,6 @@ impl Display for Instance {
             Instance::Func(_) => write!(f, "{}", "function"),
             Instance::Void => write!(f, "{}", "void"),
         };
-    }
-}
-
-#[derive(Debug)]
-pub struct Type {
-    pub(crate) canonical_name: Rc<String>,
-    supertype: Option<Rc<Type>>,
-}
-
-impl Type {
-    pub fn new(canonical_name: Rc<String>, supertype: Option<Rc<Type>>) -> Type {
-        Type {
-            canonical_name,
-            supertype,
-        }
-    }
-
-    pub fn get_canonical_name(&self) -> Rc<String> {
-        let mut actual_name = format!("{}", self.canonical_name);
-        Rc::new(actual_name)
-    }
-
-    pub(crate) fn matches_type(&self, other: Rc<Type>) -> bool {
-        let mut other = other;
-
-        loop {
-            if &*self.canonical_name == &*other.canonical_name {
-                return true
-            }
-            match &other.supertype {
-                None => return false,
-                Some(thing) => other = Rc::clone(thing),
-            }
-        }
     }
 }
 

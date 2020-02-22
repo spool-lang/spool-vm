@@ -6,9 +6,10 @@ use std::sync::Arc;
 
 use crate::instance::Instance::*;
 use crate::string_pool::StringPool;
-use crate::instance::{Instance, Type, Function};
+use crate::instance::{Instance, Function};
 use crate::opcode::{Chunk, OpCode};
 use crate::vm::InstructionResult::{GoTo, Next, ReturnVoid, ReturnValue};
+use crate::_type::Type;
 
 type Mut<T> = Rc<RefCell<T>>;
 type MutVec<T> = Vec<Mut<T>>;
@@ -44,6 +45,10 @@ impl NewVM {
 
     pub fn type_from_name(&self, name: &str) -> Rc<Type> {
         self.type_registry.get(Rc::from(name.to_string()))
+    }
+
+    pub fn pool_string(&mut self, string: &str) -> Rc<String> {
+        self.string_pool.pool_string(string.to_string())
     }
 
     fn push_call_frame(&mut self, frame: NewCallFrame) {
@@ -596,27 +601,27 @@ impl TypeRegistry {
         let mut _self = TypeRegistry {
             types: Default::default()
         };
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Object"), None));
-        let object_type = _self.get(string_pool.pool_str("silicon.lang.Object"));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Object"), None, vec![]));
+        let object_type = _self.get(string_pool.pool_str("silicon.core.Object"));
 
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Boolean"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Byte"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UByte"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int16"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt16"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int32"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt32"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int64"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt64"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Int128"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.UInt128"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Float32"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Float64"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Char"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.String"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Array"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Func"), Some(Rc::clone(&object_type))));
-        _self.register(Type::new(string_pool.pool_str("silicon.lang.Void"), Some(Rc::clone(&object_type))));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Boolean"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Byte"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.UByte"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Int16"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.UInt16"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Int32"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.UInt32"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Int64"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.UInt64"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Int128"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.UInt128"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Float32"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Float64"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Char"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.String"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Array"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Func"), Some(Rc::clone(&object_type)), vec![]));
+        _self.register(Type::new(string_pool.pool_str("silicon.core.Void"), Some(Rc::clone(&object_type)), vec![]));
         _self
     }
 
