@@ -32,6 +32,7 @@ pub enum OpCode {
     Jump(u16, bool),
     ExitScope(u16),
     Call,
+    CallInstance(u16),
     Return(bool),
     GetType(u16),
     // Debug only.
@@ -44,7 +45,7 @@ pub struct Chunk {
     pub is_locked: bool,
     pub jump_table: HashMap<u16, usize>,
     pub const_table:  HashMap<u16, Instance>,
-    pub type_table: HashMap<u16, Rc<String>>
+    pub name_table: HashMap<u16, Rc<String>>
 }
 
 impl Chunk {
@@ -54,7 +55,7 @@ impl Chunk {
             is_locked: false,
             jump_table: Default::default(),
             const_table: Default::default(),
-            type_table: Default::default()
+            name_table: Default::default()
         }
     }
 
@@ -79,11 +80,11 @@ impl Chunk {
         self.const_table.insert(index,constant);
     }
 
-    pub fn write_type(&mut self, index: u16, name: Rc<String>) {
+    pub fn write_name(&mut self, index: u16, name: Rc<String>) {
         if self.is_locked {
             panic!("Attempted to write to locked chunk!")
         }
-        self.type_table.insert(index,name);
+        self.name_table.insert(index, name);
     }
 
     pub fn lock(&mut self) {
@@ -100,6 +101,15 @@ impl Chunk {
                 return instance.to_owned()
             },
             None => panic!("Constant table slot `{}` was empty.", index)
+        };
+    }
+
+    pub fn get_name(&self, index: u16) -> Rc<String> {
+        match self.name_table.get(&index) {
+            Some(instance) => {
+                return instance.clone()
+            },
+            None => panic!("Name table slot `{}` was empty.", index)
         };
     }
 }

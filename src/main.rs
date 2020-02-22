@@ -48,12 +48,18 @@ fn main() {
     chunk.write_const(0, Int16(16));
     chunk.write_const(1, Func(func));
     chunk.write_const(2, Func(native_func));
+    chunk.write_const(3, Str(vm.pool_string("hello")));
+
+    chunk.write_name(0, vm.pool_string("capitalize"));
 
     chunk.write_instruction(Get(0, true));
     chunk.write_instruction(Get(1, true));
     chunk.write_instruction(Call);
     chunk.write_instruction(Get(2, true));
     chunk.write_instruction(Call);
+    chunk.write_instruction(Get(3, true));
+    chunk.write_instruction(CallInstance(0));
+    chunk.write_instruction(Print);
 
     vm.run(chunk)
 }

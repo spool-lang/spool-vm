@@ -1,16 +1,17 @@
 use std::rc::Rc;
 use crate::instance::Function;
 use crate::instance::Function::NativeInstance;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Type {
     pub(crate) canonical_name: Rc<String>,
     supertype: Option<Rc<Type>>,
-    instance_functions: Vec<Function>
+    instance_functions: HashMap<Rc<String>, Function>
 }
 
 impl Type {
-    pub fn new(canonical_name: Rc<String>, supertype: Option<Rc<Type>>, instance_functions: Vec<Function>) -> Type {
+    pub fn new(canonical_name: Rc<String>, supertype: Option<Rc<Type>>, instance_functions: HashMap<Rc<String>, Function>) -> Type {
         Type {
             canonical_name,
             supertype,
@@ -36,12 +37,23 @@ impl Type {
             }
         }
     }
+
+    pub(crate) fn get_instance_func(&self, name: Rc<String>) -> Function {
+        let sup_op = self.supertype.clone();
+        return match self.instance_functions.get(&*name.clone()) {
+            None => match sup_op {
+                None => panic!(),
+                Some(sup) => sup.get_instance_func(name),
+            },
+            Some(thing) => thing.clone(),
+        }
+    }
 }
 
 struct TypeBuilder {
     canonical_name: Rc<String>,
     supertype: Option<Rc<Type>>,
-    instance_functions: Vec<Function>
+    instance_functions: HashMap<Rc<String>, Function>
 }
 
 impl TypeBuilder {
@@ -49,7 +61,7 @@ impl TypeBuilder {
         TypeBuilder {
             canonical_name,
             supertype: None,
-            instance_functions: vec![]
+            instance_functions: Default::default()
         }
     }
 
@@ -58,11 +70,10 @@ impl TypeBuilder {
         return self
     }
 
-    fn instance_function(mut self, instance_function: Function) -> TypeBuilder {
-        if let Function::NativeInstance(_, _) = instance_function {
-            self.instance_functions.push(instance_function)
-        } else {
-            println!("No.")
+    fn instance_function(mut self, name: Rc<String>, instance_function: Function) -> TypeBuilder {
+        match instance_function {
+            Function::NativeInstance(_, _) => self.instance_functions.insert(name, instance_function),
+            _ => panic!(),
         };
         self
     }
@@ -72,7 +83,7 @@ impl TypeBuilder {
     }
 }
 
-mod string_type {
+pub(crate) mod string_type {
     use crate::vm::{NewVM, TypeRegistry};
     use crate::instance::{Instance, Function};
     use crate::instance::Instance::{Str, Void};
@@ -80,10 +91,12 @@ mod string_type {
     use crate::string_pool::StringPool;
     use std::rc::Rc;
 
-    fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        TypeBuilder::new(string_pool.pool_str("silicon.core.String"))
+    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
+        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.String"))
             .supertype(type_registry.get(Rc::new("silicon.core.Object".to_string())))
-            .instance_function(Function::NativeInstance(0, capitalize));
+            .instance_function(string_pool.pool_str("capitalize"), Function::NativeInstance(0, capitalize))
+            .build();
+        type_registry.register(_type)
     }
 
     fn capitalize(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
