@@ -14,6 +14,7 @@ use std::collections::HashSet;
 use crate::string_pool::StringPool;
 use std::cell::RefCell;
 use crate::vm::NewVM;
+use crate::instance::Function::Native;
 
 mod runtime;
 mod vm;
@@ -37,17 +38,25 @@ fn main() {
     func_chunk.write_instruction(Return(true));
 
     let i16_type = vm.type_from_name("silicon.lang.Int16");
-
     let func = Function::Standard(vec![i16_type.clone()], Rc::from(func_chunk));
+
+    let native_func = Native(1, print);
 
     let mut chunk = Chunk::new();
     chunk.write_const(0, Int16(16));
     chunk.write_const(1, Func(func));
+    chunk.write_const(2, Func(native_func));
 
     chunk.write_instruction(Get(0, true));
     chunk.write_instruction(Get(1, true));
     chunk.write_instruction(Call);
-    chunk.write_instruction(Print);
+    chunk.write_instruction(Get(2, true));
+    chunk.write_instruction(Call);
 
     vm.run(chunk)
+}
+
+fn print(new_vm: &mut NewVM, args: Vec<Instance>) -> Instance {
+    println!("{}", args.get(0).unwrap());
+    return Void;
 }

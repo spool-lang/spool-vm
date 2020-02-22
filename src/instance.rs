@@ -3,7 +3,7 @@ use crate::opcode::Chunk;
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter, Error, Debug};
 use std::fmt;
-use crate::vm::TypeRegistry;
+use crate::vm::{TypeRegistry, NewVM};
 
 // Represents instances created at runtime
 #[derive(Clone, Debug)]
@@ -162,7 +162,7 @@ impl Type {
 #[derive(Clone)]
 pub enum Function {
     Standard(Vec<Rc<Type>>, Rc<Chunk>),
-    Native(u8, fn(Vec<Instance>) -> Instance)
+    Native(u8, fn(&mut NewVM, Vec<Instance>) -> Instance)
 }
 
 impl Debug for Function {

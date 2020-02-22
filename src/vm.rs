@@ -404,17 +404,16 @@ impl NewVM {
                     let new_register_size = self.register.size;
                     self.register.clear_space(new_register_size - register_size);
 
-                    if let Void = returned {
-                    } else {
-                        self.push_stack(returned)
-                    };
+                    if let Void = returned {} else { self.push_stack(returned) };
                 },
                 Function::Native(arity, function) => {
                     let mut args: Vec<Instance> = vec![];
                     for x in 0..arity {
                         args.push(self.pop_stack())
                     }
-                    function(args);
+                    let returned= function(self, args);
+                    if let Void = returned {
+                    } else { self.push_stack(returned) };
                 },
             }
         }
