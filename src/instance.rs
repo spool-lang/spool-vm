@@ -3,7 +3,7 @@ use crate::opcode::Chunk;
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter, Error, Debug};
 use std::fmt;
-use crate::vm::{TypeRegistry, NewVM};
+use crate::vm::{NewVM};
 use crate::_type::Type;
 
 // Represents instances created at runtime

@@ -2,6 +2,9 @@ use std::rc::Rc;
 use crate::instance::Function;
 use crate::instance::Function::NativeInstance;
 use std::collections::HashMap;
+use crate::string_pool::StringPool;
+
+pub(crate) mod number;
 
 #[derive(Debug)]
 pub struct Type {
@@ -83,11 +86,97 @@ impl TypeBuilder {
     }
 }
 
+pub(crate) struct TypeRegistry {
+    types: HashMap<Rc<String>, Rc<Type>>
+}
+
+impl TypeRegistry {
+    pub(crate) fn new(string_pool: &mut StringPool) -> TypeRegistry {
+        let mut _self = TypeRegistry {
+            types: Default::default()
+        };
+        object_type::create(string_pool, &mut _self);
+        object_type::create(string_pool, &mut _self);
+        number::create(string_pool, &mut _self);
+        number::byte::create(string_pool, &mut _self);
+        number::ubyte::create(string_pool, &mut _self);
+        number::int16::create(string_pool, &mut _self);
+        number::uint16::create(string_pool, &mut _self);
+        number::int32::create(string_pool, &mut _self);
+        number::uint32::create(string_pool, &mut _self);
+        number::int64::create(string_pool, &mut _self);
+        number::uint64::create(string_pool, &mut _self);
+        number::int128::create(string_pool, &mut _self);
+        number::uint128::create(string_pool, &mut _self);
+        number::float32::create(string_pool, &mut _self);
+        number::float64::create(string_pool, &mut _self);
+        char_type::create(string_pool, &mut _self);
+        string_type::create(string_pool, &mut _self);
+        array_type::create(string_pool, &mut _self);
+        func_type::create(string_pool, &mut _self);
+        void_type::create(string_pool, &mut _self);
+        _self
+    }
+
+    pub(crate) fn register(&mut self, _type: Type) {
+        let name = Rc::clone(&_type.canonical_name);
+        self.types.insert(name, Rc::from(_type));
+    }
+
+    pub(crate) fn get(&self, name: Rc<String>) -> Rc<Type> {
+        match self.types.get(&name) {
+            None => panic!("Type {} does not exist.", name),
+            Some(_type) => Rc::clone(_type),
+        }
+    }
+}
+
+pub(crate) mod object_type {
+    use crate::string_pool::StringPool;
+    
+    use crate::_type::{TypeBuilder, TypeRegistry};
+    use std::rc::Rc;
+
+    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
+        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Object"))
+            .build();
+        type_registry.register(_type)
+    }
+}
+
+pub(crate) mod boolean_type {
+    use crate::string_pool::StringPool;
+    
+    use crate::_type::{TypeBuilder, TypeRegistry};
+    use std::rc::Rc;
+
+    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
+        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Boolean"))
+            .supertype(type_registry.get(Rc::new("silicon.core.Object".to_string())))
+            .build();
+        type_registry.register(_type)
+    }
+}
+
+pub(crate) mod char_type {
+    use crate::string_pool::StringPool;
+    
+    use crate::_type::{TypeBuilder, TypeRegistry};
+    use std::rc::Rc;
+
+    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
+        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Char"))
+            .supertype(type_registry.get(Rc::new("silicon.core.Object".to_string())))
+            .build();
+        type_registry.register(_type)
+    }
+}
+
 pub(crate) mod string_type {
-    use crate::vm::{NewVM, TypeRegistry};
+    use crate::vm::{NewVM};
     use crate::instance::{Instance, Function};
     use crate::instance::Instance::{Str, Void};
-    use crate::_type::TypeBuilder;
+    use crate::_type::{TypeBuilder, TypeRegistry};
     use crate::string_pool::StringPool;
     use std::rc::Rc;
 
@@ -105,5 +194,47 @@ pub(crate) mod string_type {
             return Str(capitalized)
         };
         panic!()
+    }
+}
+
+pub(crate) mod array_type {
+    use crate::string_pool::StringPool;
+    
+    use crate::_type::{TypeBuilder, TypeRegistry};
+    use std::rc::Rc;
+
+    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
+        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Array"))
+            .supertype(type_registry.get(Rc::new("silicon.core.Object".to_string())))
+            .build();
+        type_registry.register(_type)
+    }
+}
+
+pub(crate) mod func_type {
+    use crate::string_pool::StringPool;
+    
+    use crate::_type::{TypeBuilder, TypeRegistry};
+    use std::rc::Rc;
+
+    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
+        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Func"))
+            .supertype(type_registry.get(Rc::new("silicon.core.Object".to_string())))
+            .build();
+        type_registry.register(_type)
+    }
+}
+
+pub(crate) mod void_type {
+    use crate::string_pool::StringPool;
+    
+    use crate::_type::{TypeBuilder, TypeRegistry};
+    use std::rc::Rc;
+
+    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
+        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Void"))
+            .supertype(type_registry.get(Rc::new("silicon.core.Object".to_string())))
+            .build();
+        type_registry.register(_type)
     }
 }

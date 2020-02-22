@@ -9,7 +9,7 @@ use crate::string_pool::StringPool;
 use crate::instance::{Instance, Function};
 use crate::opcode::{Chunk, OpCode};
 use crate::vm::InstructionResult::{GoTo, Next, ReturnVoid, ReturnValue};
-use crate::_type::Type;
+use crate::_type::{Type, TypeRegistry};
 
 type Mut<T> = Rc<RefCell<T>>;
 type MutVec<T> = Vec<Mut<T>>;
@@ -607,52 +607,6 @@ impl RegisterEntry {
             return;
         }
         panic!()
-    }
-}
-
-pub(crate) struct TypeRegistry {
-    types: HashMap<Rc<String>, Rc<Type>>
-}
-
-impl TypeRegistry {
-    fn new(string_pool: &mut StringPool) -> TypeRegistry {
-        let mut _self = TypeRegistry {
-            types: Default::default()
-        };
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Object"), None, Default::default()));
-        let object_type = _self.get(string_pool.pool_str("silicon.core.Object"));
-
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Boolean"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Byte"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.UByte"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Int16"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.UInt16"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Int32"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.UInt32"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Int64"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.UInt64"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Int128"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.UInt128"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Float32"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Float64"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Char"), Some(Rc::clone(&object_type)), Default::default()));
-        crate::_type::string_type::create(string_pool, &mut _self);
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Array"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Func"), Some(Rc::clone(&object_type)), Default::default()));
-        _self.register(Type::new(string_pool.pool_str("silicon.core.Void"), Some(Rc::clone(&object_type)), Default::default()));
-        _self
-    }
-
-    pub(crate) fn register(&mut self, _type: Type) {
-        let name = Rc::clone(&_type.canonical_name);
-        self.types.insert(name, Rc::from(_type));
-    }
-
-    pub(crate) fn get(&self, name: Rc<String>) -> Rc<Type> {
-        match self.types.get(&name) {
-            None => panic!("Type {} does not exist.", name),
-            Some(_type) => Rc::clone(_type),
-        }
     }
 }
 
