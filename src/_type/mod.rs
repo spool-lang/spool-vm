@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use crate::instance::{Function, Instance};
-use crate::instance::Function::NativeInstance;
+use crate::instance::Function::{NativeInstance, Native};
 use std::collections::HashMap;
 use crate::string_pool::StringPool;
 use crate::vm::VM;
@@ -11,14 +11,18 @@ pub(crate) mod number;
 pub struct Type {
     pub(crate) canonical_name: Rc<String>,
     supertype: Option<Rc<Type>>,
+    ctors: Vec<Function>,
+    ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>
 }
 
 impl Type {
-    pub fn new(canonical_name: Rc<String>, supertype: Option<Rc<Type>>, instance_functions: HashMap<Rc<String>, Function>) -> Type {
+    pub fn new(canonical_name: Rc<String>, supertype: Option<Rc<Type>>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>) -> Type {
         Type {
             canonical_name,
             supertype,
+            ctors,
+            ctorable,
             instance_functions
         }
     }
@@ -52,11 +56,27 @@ impl Type {
             Some(thing) => thing.clone(),
         }
     }
+
+    pub(crate) fn get_ctor(&self, index: usize) -> Function {
+        if !self.ctorable { panic!() }
+        match self.ctors.get(index) {
+            None => {
+                let sup_op = self.supertype.clone();
+                match sup_op {
+                    None => panic!(),
+                    Some(supertype) => supertype.get_ctor(index),
+                }
+            },
+            Some(ctor) => ctor.clone(),
+        }
+    }
 }
 
 struct TypeBuilder {
     canonical_name: Rc<String>,
     supertype: Option<Rc<Type>>,
+    ctors: Vec<Function>,
+    ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>
 }
 
@@ -65,6 +85,8 @@ impl TypeBuilder {
         TypeBuilder {
             canonical_name,
             supertype: None,
+            ctors: vec![],
+            ctorable: false,
             instance_functions: Default::default()
         }
     }
@@ -74,13 +96,24 @@ impl TypeBuilder {
         return self
     }
 
+    fn ctor(mut self, arity: u8, ctor: fn(&mut VM, Vec<Instance>) -> Instance) -> TypeBuilder {
+        self.ctors.push(Native(arity, ctor));
+        self.ctorable = true;
+        self
+    }
+
+    fn ctorable(mut self, ctorable: bool) -> TypeBuilder {
+        self.ctorable = ctorable;
+        self
+    }
+
     fn instance_function(mut self, name: Rc<String>, arity: u8, func: fn(&mut VM, Instance, Vec<Instance>) -> Instance) -> TypeBuilder {
         self.instance_functions.insert(name, NativeInstance(arity, func));
         self
     }
 
     fn build(self) -> Type {
-        Type::new(self.canonical_name, self.supertype, self.instance_functions)
+        Type::new(self.canonical_name, self.supertype, self.ctors, self.ctorable, self.instance_functions)
     }
 }
 
@@ -131,14 +164,22 @@ impl TypeRegistry {
 
 pub(crate) mod object_type {
     use crate::string_pool::StringPool;
-    
     use crate::_type::{TypeBuilder, TypeRegistry};
     use std::rc::Rc;
+    use crate::vm::VM;
+    use crate::instance::Instance;
+    use crate::instance::Instance::Object;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Object"))
+            .ctor(0, ctor)
             .build();
         type_registry.register(_type)
+    }
+
+    fn ctor(vm: &mut VM, args: Vec<Instance>) -> Instance {
+        let _type = vm.type_from_name("spool.core.Object");
+        return Object(_type)
     }
 }
 

@@ -28,30 +28,11 @@ fn main() {
     let mut vm = VM::new();
 
     let mut chunk = Chunk::new();
+    chunk.write_name(0, vm.pool_string("spool.core.Object"));
 
-    chunk.write_const(0, Byte(4));
-    chunk.write_const(1, Byte(6));
-    chunk.write_const(2, Byte(8));
-    chunk.write_const(3, Byte(1));
-    chunk.write_const(4, Byte(5));
-
-    chunk.write_instruction(Instruction::Get(0, true));
-    chunk.write_instruction(Instruction::Get(1, true));
-    chunk.write_instruction(Instruction::Get(2, true));
-    chunk.write_instruction(Instruction::InitArray(3));
-    chunk.write_instruction(Instruction::Declare(false));
-    chunk.write_instruction(Instruction::Get(0, false));
-    chunk.write_instruction(Instruction::Print);
-    chunk.write_instruction(Instruction::Get(4, true));
-    chunk.write_instruction(Instruction::Get(3, true));
-    chunk.write_instruction(Instruction::Get(0, false));
-    chunk.write_instruction(Instruction::IndexSet);
-    chunk.write_instruction(Instruction::Get(3, true));
-    chunk.write_instruction(Instruction::Get(0, false));
-    chunk.write_instruction(Instruction::IndexGet);
-    chunk.write_instruction(Instruction::Print);
-    chunk.write_instruction(Instruction::Get(0, false));
-    chunk.write_instruction(Instruction::Print);
+    chunk.write_instruction(GetType(0));
+    chunk.write_instruction(New(0));
+    chunk.write_instruction(Print);
 
     vm.run(chunk)
 }

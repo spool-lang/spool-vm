@@ -106,6 +106,7 @@ impl VM {
             Instruction::Get(index, from_chunk) => self.get(index, from_chunk),
             Instruction::Declare(writable) => self.declare(writable),
             Instruction::Set(index) => self.set(index),
+            Instruction::New(index) => self.new_instance(index),
             Instruction::Add => self.add(),
             Instruction::Subtract => self.subtract(),
             Instruction::Multiply => self.multiply(),
@@ -155,6 +156,12 @@ impl VM {
         let instance = self.pop_stack();
         let true_index = &self.get_call_frame().borrow().register_size + index;
         self.register.set(instance, &true_index)
+    }
+
+    fn new_instance(&mut self, index: &u16) {
+        let _type = self.pop_type_stack();
+        let ctor = _type.get_ctor(*index as usize);
+        self.call_function(None, ctor);
     }
 
     fn add(&mut self) {
@@ -433,44 +440,7 @@ impl VM {
     fn call(&mut self) {
         let func = self.pop_stack();
         if let Func(function) = func {
-            match function {
-                Function::Standard(param_types, chunk) => {
-                    let mut args: Vec<Instance> = vec![];
-                    for param_type in param_types{
-                        let instance = self.pop_stack();
-                        let instance_type = self.type_registry.get(instance.get_canonical_name());
-                        if !param_type.matches_type(instance_type) {panic!()}
-
-                        args.push(instance)
-                    }
-                    let stack_size = self.stack.len();
-                    let type_stack_size = self.type_stack.len();
-                    let register_size = self.register.size;
-                    for arg in args {
-                        self.register.declare(arg, &false)
-                    }
-                    let frame = NewCallFrame::new_inner(chunk.clone(), stack_size, type_stack_size, register_size);
-                    self.push_call_frame(frame);
-                    let returned=  self.execute();
-
-                    self.stack.truncate(stack_size);
-                    self.type_stack.truncate(type_stack_size);
-                    let new_register_size = self.register.size;
-                    self.register.clear_space(new_register_size - register_size);
-
-                    if let Void = returned {} else { self.push_stack(returned) };
-                },
-                Function::Native(arity, function) => {
-                    let mut args: Vec<Instance> = vec![];
-                    for x in 0..arity {
-                        args.push(self.pop_stack())
-                    }
-                    let returned= function(self, args);
-                    if let Void = returned {
-                    } else { self.push_stack(returned) };
-                },
-                _ => panic!()
-            }
+            self.call_function(None, function)
         }
         else {
             panic!()
@@ -482,18 +452,61 @@ impl VM {
         let instance_type = self.type_registry.get(instance.get_canonical_name());
         let name = self.get_call_frame().borrow().chunk.get_name(name_index);
 
-       match instance_type.get_instance_func(name) {
-           Function::NativeInstance(arity, function) => {
-               let mut args: Vec<Instance> = vec![];
-               for x in 0..arity {
-                   args.push(self.pop_stack())
-               }
-               let returned = function(self, instance, args);
-               if let Void = returned {
-               } else { self.push_stack(returned) };
-           },
-           _ => panic!()
-       };
+        self.call_function(Some(instance), instance_type.get_instance_func(name));
+    }
+
+    fn call_function(&mut self, op_instance: Option<Instance>, function: Function) {
+        match function {
+            Function::Standard(param_types, chunk) => {
+                let mut args: Vec<Instance> = vec![];
+                for param_type in param_types {
+                    let instance = self.pop_stack();
+                    let instance_type = self.type_registry.get(instance.get_canonical_name());
+                    if !param_type.matches_type(instance_type) { panic!() }
+
+                    args.push(instance)
+                }
+                let stack_size = self.stack.len();
+                let type_stack_size = self.type_stack.len();
+                let register_size = self.register.size;
+                for arg in args {
+                    self.register.declare(arg, &false)
+                }
+                let frame = NewCallFrame::new_inner(chunk.clone(), stack_size, type_stack_size, register_size);
+                self.push_call_frame(frame);
+                let returned = self.execute();
+
+                self.stack.truncate(stack_size);
+                self.type_stack.truncate(type_stack_size);
+                let new_register_size = self.register.size;
+                self.register.clear_space(new_register_size - register_size);
+
+                if let Void = returned {} else { self.push_stack(returned) };
+            },
+            Function::Native(arity, function) => {
+                let mut args: Vec<Instance> = vec![];
+                for x in 0..arity {
+                    args.push(self.pop_stack())
+                }
+                let returned = function(self, args);
+                if let Void = returned {} else { self.push_stack(returned) };
+            },
+            Function::NativeInstance(arity, function) => {
+                match op_instance {
+                    None => panic!(),
+                    Some(instance) => {
+                        let mut args: Vec<Instance> = vec![];
+                        for x in 0..arity {
+                            args.push(self.pop_stack())
+                        }
+                        let returned = function(self, instance, args);
+                        if let Void = returned {
+                        } else { self.push_stack(returned) };
+                    }
+                }
+            },
+            _ => panic!()
+        }
     }
 
     fn return_from(&mut self, with_value: bool) -> InstructionResult {

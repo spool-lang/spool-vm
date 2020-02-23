@@ -48,6 +48,7 @@ pub enum Instruction {
     Get(u16, bool),
     Declare(bool),
     Set(u16),
+    New(u16),
     Add,
     Subtract,
     Multiply,
