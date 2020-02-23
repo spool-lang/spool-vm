@@ -3,7 +3,7 @@ use crate::instruction::Chunk;
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter, Error, Debug};
 use std::fmt;
-use crate::vm::{NewVM};
+use crate::vm::{VM};
 use crate::_type::Type;
 
 // Represents instances created at runtime
@@ -130,8 +130,8 @@ impl Display for Instance {
 #[derive(Clone)]
 pub enum Function {
     Standard(Vec<Rc<Type>>, Rc<Chunk>),
-    Native(u8, fn(&mut NewVM, Vec<Instance>) -> Instance),
-    NativeInstance(u8, fn(&mut NewVM, Instance, Vec<Instance>) -> Instance)
+    Native(u8, fn(&mut VM, Vec<Instance>) -> Instance),
+    NativeInstance(u8, fn(&mut VM, Instance, Vec<Instance>) -> Instance)
 }
 
 impl Debug for Function {

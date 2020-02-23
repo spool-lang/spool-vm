@@ -3,7 +3,7 @@ use crate::instance::{Function, Instance};
 use crate::instance::Function::NativeInstance;
 use std::collections::HashMap;
 use crate::string_pool::StringPool;
-use crate::vm::NewVM;
+use crate::vm::VM;
 
 pub(crate) mod number;
 
@@ -74,7 +74,7 @@ impl TypeBuilder {
         return self
     }
 
-    fn instance_function(mut self, name: Rc<String>, arity: u8, func: fn(&mut NewVM, Instance, Vec<Instance>) -> Instance) -> TypeBuilder {
+    fn instance_function(mut self, name: Rc<String>, arity: u8, func: fn(&mut VM, Instance, Vec<Instance>) -> Instance) -> TypeBuilder {
         self.instance_functions.insert(name, NativeInstance(arity, func));
         self
     }
@@ -171,7 +171,7 @@ pub(crate) mod char_type {
 }
 
 pub(crate) mod string_type {
-    use crate::vm::{NewVM};
+    use crate::vm::{VM};
     use crate::instance::{Instance, Function};
     use crate::instance::Instance::{Str, Void};
     use crate::_type::{TypeBuilder, TypeRegistry};
@@ -186,7 +186,7 @@ pub(crate) mod string_type {
         type_registry.register(_type)
     }
 
-    fn capitalize(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+    fn capitalize(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
         if let Str(string) = instance {
             let capitalized = vm.pool_string(string.to_uppercase().as_str());
             return Str(capitalized)

@@ -12,7 +12,7 @@ use std::rc::Rc;
 use std::collections::HashSet;
 use crate::string_pool::StringPool;
 use std::cell::RefCell;
-use crate::vm::NewVM;
+use crate::vm::VM;
 use crate::instance::Function::Native;
 
 mod vm;
@@ -25,7 +25,7 @@ mod _type;
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let mut vm = NewVM::new();
+    let mut vm = VM::new();
 
     let mut chunk = Chunk::new();
 

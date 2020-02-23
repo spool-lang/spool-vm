@@ -14,7 +14,7 @@ use crate::_type::{Type, TypeRegistry};
 type Mut<T> = Rc<RefCell<T>>;
 type MutVec<T> = Vec<Mut<T>>;
 
-pub struct NewVM {
+pub struct VM {
     stack: Vec<Instance>,
     type_stack: Vec<Rc<Type>>,
     frame_stack: MutVec<NewCallFrame>,
@@ -23,11 +23,11 @@ pub struct NewVM {
     type_registry: TypeRegistry
 }
 
-impl NewVM {
-    pub fn new() -> NewVM {
+impl VM {
+    pub fn new() -> VM {
         let mut string_pool = StringPool::new();
         let type_registry = TypeRegistry::new(&mut string_pool);
-        NewVM {
+        VM {
             stack: vec![],
             type_stack: vec![],
             frame_stack: vec![],

@@ -2,7 +2,7 @@ use crate::_type::{TypeBuilder, TypeRegistry};
 use crate::string_pool::StringPool;
 use std::rc::Rc;
 use crate::instance::{Function, Instance};
-use crate::vm::{NewVM};
+use crate::vm::{VM};
 use crate::instance::Instance::{Byte, UByte, Int16, UInt16, Int32, UInt32, Int64, UInt64, Int128, UInt128, Float32, Float64};
 use crate::instance::Function::NativeInstance;
 
@@ -25,7 +25,7 @@ pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegis
     type_registry.register(_type)
 }
 
-fn to_byte(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_byte(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::Byte(num) => num,
         Instance::Int16(num) => num as i8,
@@ -39,7 +39,7 @@ fn to_byte(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance 
     Byte(value)
 }
 
-fn to_ubyte(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_ubyte(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::UByte(num) => num,
         Instance::UInt16(num) => num as u8,
@@ -51,7 +51,7 @@ fn to_ubyte(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance
     UByte(value)
 }
 
-fn to_int16(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_int16(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::Byte(num) => num as i16,
         Instance::Int16(num) => num,
@@ -65,7 +65,7 @@ fn to_int16(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance
     Int16(value)
 }
 
-fn to_uint16(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_uint16(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::UByte(num) => num as u16,
         Instance::UInt16(num) => num,
@@ -77,7 +77,7 @@ fn to_uint16(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instanc
     UInt16(value)
 }
 
-fn to_int32(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_int32(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::Byte(num) => num as i32,
         Instance::Int16(num) => num as i32,
@@ -91,7 +91,7 @@ fn to_int32(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance
     Int32(value)
 }
 
-fn to_uint32(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_uint32(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::UByte(num) => num as u32,
         Instance::UInt16(num) => num as u32,
@@ -103,7 +103,7 @@ fn to_uint32(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instanc
     UInt32(value)
 }
 
-fn to_int64(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_int64(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::Byte(num) => num as i64,
         Instance::Int16(num) => num as i64,
@@ -117,7 +117,7 @@ fn to_int64(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance
     Int64(value)
 }
 
-fn to_uint64(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_uint64(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::UByte(num) => num as u64,
         Instance::UInt16(num) => num as u64,
@@ -129,7 +129,7 @@ fn to_uint64(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instanc
     UInt64(value)
 }
 
-fn to_int128(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_int128(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::Byte(num) => num as i128,
         Instance::Int16(num) => num as i128,
@@ -143,7 +143,7 @@ fn to_int128(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instanc
     Int128(value)
 }
 
-fn to_uint128(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_uint128(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::UByte(num) => num as u128,
         Instance::UInt16(num) => num as u128,
@@ -155,7 +155,7 @@ fn to_uint128(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instan
     UInt128(value)
 }
 
-fn to_float32(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_float32(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::Byte(num) => num as f32,
         Instance::Int16(num) => num as f32,
@@ -174,7 +174,7 @@ fn to_float32(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instan
     Float32(value)
 }
 
-fn to_float64(vm: &mut NewVM, instance: Instance, args: Vec<Instance>) -> Instance {
+fn to_float64(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
     let value = match instance {
         Instance::Byte(num) => num as f64,
         Instance::Int16(num) => num as f64,
