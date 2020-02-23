@@ -27,46 +27,31 @@ fn main() {
 
     let mut vm = NewVM::new();
 
-    let mut func_chunk = Chunk::new();
-    func_chunk.write_const(0, Int16(8));
-    func_chunk.write_const(1, Int16(32));
-    func_chunk.write_instruction(Instruction::Get(0, true));
-    func_chunk.write_instruction(Print);
-    func_chunk.write_instruction(Instruction::Get(0, false));
-    func_chunk.write_instruction(Print);
-    func_chunk.write_instruction(Instruction::Get(1, true));
-    func_chunk.write_instruction(Return(true));
-
-    let i16_type = vm.type_from_name("silicon.core.Int16");
-    let func = Function::Standard(vec![i16_type.clone()], Rc::from(func_chunk));
-
-    let native_func = Native(1, print);
-
     let mut chunk = Chunk::new();
-    chunk.write_const(0, Int16(16));
-    chunk.write_const(1, Func(func));
-    chunk.write_const(2, Func(native_func));
-    chunk.write_const(3, Str(vm.pool_string("hello")));
 
-    chunk.write_name(0, vm.pool_string("capitalize"));
-    chunk.write_name(1, vm.pool_string("toInt64"));
+    chunk.write_const(0, Byte(4));
+    chunk.write_const(1, Byte(6));
+    chunk.write_const(2, Byte(8));
+    chunk.write_const(3, Byte(1));
+    chunk.write_const(4, Byte(5));
 
-    chunk.write_instruction(Get(0, true));
-    chunk.write_instruction(Get(1, true));
-    chunk.write_instruction(Call);
-    chunk.write_instruction(Get(2, true));
-    chunk.write_instruction(Call);
-    chunk.write_instruction(Get(3, true));
-    chunk.write_instruction(CallInstance(0));
-    chunk.write_instruction(Print);
-    chunk.write_instruction(Get(0, true));
-    chunk.write_instruction(CallInstance(1));
-    chunk.write_instruction(Print);
+    chunk.write_instruction(Instruction::Get(0, true));
+    chunk.write_instruction(Instruction::Get(1, true));
+    chunk.write_instruction(Instruction::Get(2, true));
+    chunk.write_instruction(Instruction::InitArray(3));
+    chunk.write_instruction(Instruction::Declare(false));
+    chunk.write_instruction(Instruction::Get(0, false));
+    chunk.write_instruction(Instruction::Print);
+    chunk.write_instruction(Instruction::Get(4, true));
+    chunk.write_instruction(Instruction::Get(3, true));
+    chunk.write_instruction(Instruction::Get(0, false));
+    chunk.write_instruction(Instruction::IndexSet);
+    chunk.write_instruction(Instruction::Get(3, true));
+    chunk.write_instruction(Instruction::Get(0, false));
+    chunk.write_instruction(Instruction::IndexGet);
+    chunk.write_instruction(Instruction::Print);
+    chunk.write_instruction(Instruction::Get(0, false));
+    chunk.write_instruction(Instruction::Print);
 
     vm.run(chunk)
-}
-
-fn print(new_vm: &mut NewVM, args: Vec<Instance>) -> Instance {
-    println!("{}", args.get(0).unwrap());
-    return Void;
 }

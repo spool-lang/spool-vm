@@ -62,10 +62,10 @@ pub enum Instruction {
     NotEq,
     Is,
     LogicNegate,
-    Concat,
     InitArray(u16),
     IndexGet,
     IndexSet,
+    Concat,
     Jump(u16, bool),
     ExitScope(u16),
     Call,
@@ -115,6 +115,12 @@ impl Instruction {
                         17 => Instruction::NotEq,
                         18 => Instruction::Is,
                         19 => Instruction::LogicNegate,
+                        20 => {
+                            let size = feed.next_u16();
+                            Instruction::InitArray(size)
+                        },
+                        21 => Instruction::IndexGet,
+                        22 => Instruction::IndexSet,
                         _ => panic!("Unknown instruction!")
                     };
                     instructions.push(instruction)

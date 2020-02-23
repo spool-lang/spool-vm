@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::convert::TryInto;
+use std::convert::{TryInto, TryFrom};
 use std::sync::Arc;
 
 use crate::instance::Instance::*;
@@ -120,6 +120,9 @@ impl NewVM {
             Instruction::NotEq => self.not_eq(),
             Instruction::Is => self.is(),
             Instruction::LogicNegate => self.logic_negate(),
+            Instruction::InitArray(size) => self.init_array(*size),
+            Instruction::IndexGet => self.index_get(),
+            Instruction::IndexSet => self.index_set(),
             Instruction::Jump(index, conditional) => return self.jump(index, conditional),
             Instruction::ExitScope(to_clear) => self.register.clear_space(*to_clear),
             Instruction::Call => self.call(),
@@ -371,6 +374,51 @@ impl NewVM {
         panic!("Logic negation can only be applied to booleans!")
     }
 
+    fn init_array(&mut self, size: u16) {
+        let object_type = self.type_registry.get(Rc::new("silicon.core.Object".to_string()));
+        let mut contents: Vec<Instance> = vec![];
+        for _ in 0..size {
+            contents.push(self.pop_stack())
+        }
+        contents.reverse();
+        let array = Array(Rc::new(RefCell::new(contents)), object_type);
+        self.push_stack(array)
+    }
+
+    fn index_get(&mut self) {
+        let indexable = self.pop_stack();
+        let index = self.get_usize();
+        match indexable {
+            Array(arr, _type) => {
+                match arr.borrow().get(index) {
+                    None => panic!(),
+                    Some(instance) => self.push_stack(instance.clone()),
+                }
+            },
+            Str(string) => {
+                let chars: Vec<char> = string.chars().collect();
+                match chars.get(index) {
+                    None => panic!(),
+                    Some(c) => self.push_stack(Char(*c)),
+                }
+            }
+            _ => panic!()
+        };
+    }
+
+    fn index_set(&mut self) {
+        let indexable = self.pop_stack();
+        let index = self.get_usize();
+        let to_set = self.pop_stack();
+        match indexable {
+            Array(arr, _type) => {
+                arr.borrow_mut().remove(index);
+                arr.borrow_mut().insert(index, to_set)
+            }
+            _ => panic!()
+        };
+    }
+
     fn jump(&mut self, index: &u16, conditional: &bool) -> InstructionResult {
         if *conditional {
             let instance = self.pop_stack();
@@ -466,6 +514,23 @@ impl NewVM {
 
         let _type = self.type_registry.get(type_name);
         self.push_type_stack(_type)
+    }
+
+    fn get_usize(&mut self) -> usize {
+        match self.pop_stack() {
+            Byte(val) => usize::try_from(val).unwrap(),
+            Int16(val) => usize::try_from(val).unwrap(),
+            Int32(val) => usize::try_from(val).unwrap(),
+            Int64(val) => usize::try_from(val).unwrap(),
+            Int128(val) => usize::try_from(val).unwrap(),
+            UByte(val) => val as usize,
+            UInt16(val) => val as usize,
+            UInt32(val) => val as usize,
+            UInt64(val) => val as usize,
+            UInt128(val) => val as usize,
+            _ => panic!()
+        }
+
     }
 
     fn push_stack(&mut self, instance: Instance) {
