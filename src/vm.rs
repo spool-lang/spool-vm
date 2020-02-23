@@ -375,7 +375,7 @@ impl VM {
     }
 
     fn init_array(&mut self, size: u16) {
-        let object_type = self.type_registry.get(Rc::new("silicon.core.Object".to_string()));
+        let object_type = self.type_registry.get(Rc::new("spool.core.Object".to_string()));
         let mut contents: Vec<Instance> = vec![];
         for _ in 0..size {
             contents.push(self.pop_stack())
