@@ -381,8 +381,9 @@ impl VM {
             contents.push(self.pop_stack())
         }
         contents.reverse();
-        let array = Array(Rc::new(RefCell::new(contents)), object_type);
-        self.push_stack(array)
+
+        let fixed_array = Array(contents.into_boxed_slice(), object_type);
+        self.push_stack(fixed_array)
     }
 
     fn index_get(&mut self) {
@@ -390,11 +391,11 @@ impl VM {
         let index = self.get_usize();
         match indexable {
             Array(arr, _type) => {
-                match arr.borrow().get(index) {
+                match arr.get(index) {
                     None => panic!(),
-                    Some(instance) => self.push_stack(instance.clone()),
+                    Some(instance) => self.push_stack(instance.clone())
                 }
-            },
+            }
             Str(string) => {
                 let chars: Vec<char> = string.chars().collect();
                 match chars.get(index) {
@@ -411,9 +412,8 @@ impl VM {
         let index = self.get_usize();
         let to_set = self.pop_stack();
         match indexable {
-            Array(arr, _type) => {
-                arr.borrow_mut().remove(index);
-                arr.borrow_mut().insert(index, to_set)
+            Array(mut arr, _type) => {
+                arr[index] = to_set;
             }
             _ => panic!()
         };

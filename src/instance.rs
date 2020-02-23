@@ -41,7 +41,7 @@ pub enum Instance {
     //Complex(),
     Char(char),
     Str(Rc<String>),
-    Array(Rc<RefCell<Vec<Instance>>>, Rc<Type>),
+    Array(Box<[Instance]>, Rc<Type>),
     //Represents a custom class instance.
     //ClassInstance(Box<ClassInstance>),
     //Represents a class object.
@@ -101,28 +101,20 @@ impl Display for Instance {
             Instance::Str(string) => write!(f, "\"{}\"", string),
             Instance::Array(array, _type) => {
                 let mut array_string = format!("{}[", _type.get_canonical_name());
-                let borrowed = array.borrow_mut();
 
-                if !borrowed.is_empty() {
-                    for i in 0..borrowed.len() {
-                        match borrowed.get(i) {
-                            Some(instance) => {
-                                let item_string = format!("{}", instance);
-                                array_string.push_str(item_string.as_str());
-                                if i != borrowed.len() - 1 {
-                                    array_string.push_str(", ")
-                                }
-                            }
-                            None => panic!("Could not format array!")
-                        }
-
+                for i in 0..array.len() {
+                    let instance = array.get(i).unwrap();
+                    let instance_string = format!("{}", instance);
+                    array_string.push_str(instance_string.as_str());
+                    if i != array.len() - 1 {
+                        array_string.push_str(", ")
                     }
                 }
 
                 write!(f, "{}]", array_string)
             },
             Instance::Func(_) => write!(f, "{}", "function"),
-            Instance::Void => write!(f, "{}", "void"),
+            Instance::Void => write!(f, "{}", "void")
         };
     }
 }
