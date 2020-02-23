@@ -94,7 +94,7 @@ impl TypeRegistry {
             types: Default::default()
         };
         object_type::create(string_pool, &mut _self);
-        object_type::create(string_pool, &mut _self);
+        boolean_type::create(string_pool, &mut _self);
         number::create(string_pool, &mut _self);
         number::byte::create(string_pool, &mut _self);
         number::ubyte::create(string_pool, &mut _self);
