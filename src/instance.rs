@@ -9,7 +9,9 @@ use crate::_type::Type;
 // Represents instances created at runtime
 #[derive(Clone, Debug)]
 pub enum Instance {
-    Object,
+    // Represents both instances of the builtin object type & instances
+    // of non-builtin subtypes.
+    Object(Rc<Type>),
     Bool(bool),
     Byte(i8),
     UByte(u8),
@@ -42,8 +44,6 @@ pub enum Instance {
     Char(char),
     Str(Rc<String>),
     Array(Box<[Instance]>, Rc<Type>),
-    //Represents a custom class instance.
-    //ClassInstance(Box<ClassInstance>),
     //Represents a class object.
     //Class(Box<Class>)
     //Represents a function.
@@ -55,7 +55,7 @@ impl Instance {
     pub fn get_canonical_name(&self) -> Rc<String> {
         Rc::new(
             match self {
-                Instance::Object => "silicon.core.Object",
+                Instance::Object(_type) => _type.canonical_name.as_str(),
                 Instance::Bool(_) => "silicon.core.Boolean",
                 Instance::Byte(_) => "silicon.core.Byte",
                 Instance::UByte(_) => "silicon.core.UByte",
@@ -83,7 +83,7 @@ impl Instance {
 impl Display for Instance {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         return match self {
-            Instance::Object => write!(f, "{}", "object"),
+            Instance::Object(_) => write!(f, "{}", "object"),
             Instance::Bool(boolean) => write!(f, "{}", boolean),
             Instance::Byte(byte) => write!(f, "{}b", byte),
             Instance::UByte(ubyte) => write!(f, "{}ub", ubyte),
