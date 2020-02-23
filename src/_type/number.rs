@@ -7,8 +7,8 @@ use crate::instance::Instance::{Byte, UByte, Int16, UInt16, Int32, UInt32, Int64
 use crate::instance::Function::NativeInstance;
 
 pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-    let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Number"))
-        .supertype(type_registry.get(string_pool.pool_str("silicon.core.Object")))
+    let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Number"))
+        .supertype(type_registry.get(string_pool.pool_str("spool.core.Object")))
         .instance_function(string_pool.pool_str("toByte"), 0, to_byte)
         .instance_function(string_pool.pool_str("toUByte"), 0, to_ubyte)
         .instance_function(string_pool.pool_str("toInt16"), 0, to_int16)
@@ -199,8 +199,8 @@ pub(crate) mod byte {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Byte"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Byte"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -212,8 +212,8 @@ pub(crate) mod ubyte {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.UByte"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.UByte"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -226,8 +226,8 @@ pub(crate) mod int16 {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Int16"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Int16"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -240,8 +240,8 @@ pub(crate) mod uint16 {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.UInt16"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.UInt16"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -254,8 +254,8 @@ pub(crate) mod int32 {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Int32"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Int32"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -268,8 +268,8 @@ pub(crate) mod uint32 {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.UInt32"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.UInt32"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -282,8 +282,8 @@ pub(crate) mod int64 {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Int64"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Int64"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -296,8 +296,8 @@ pub(crate) mod uint64 {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.UInt64"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.UInt64"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -310,8 +310,8 @@ pub(crate) mod int128 {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Int128"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Int128"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -324,8 +324,8 @@ pub(crate) mod uint128 {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.UInt128"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.UInt128"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -338,8 +338,8 @@ pub(crate) mod float32 {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Float32"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Float32"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
@@ -352,8 +352,8 @@ pub(crate) mod float64 {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("silicon.core.Float64"))
-            .supertype(type_registry.get(Rc::new("silicon.core.Number".to_string())))
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Float64"))
+            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
             .build();
         type_registry.register(_type)
     }
