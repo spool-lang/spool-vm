@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use crate::instance::Instance;
 use std::rc::Rc;
 use std::slice::Iter;
+use crate::instruction::Instruction::Call;
 
 struct ByteFeed<'a> {
     bytes: Iter<'a, u8>
@@ -70,7 +71,7 @@ pub enum Instruction {
     LogicNegate,
     Concat,
     Jump(u16, bool),
-    ExitScope(u16),
+    ExitBlock(u16),
     Call,
     CallInstance(u16),
     Return(bool),
@@ -97,33 +98,67 @@ impl Instruction {
                             Instruction::Get(index, from_chunk)
                         },
                         3 => {
-                            let writable = feed.next_bool();
-                            Instruction::Declare(writable)
+                            let index = feed.next_u16();
+                            Instruction::New(index)
                         },
                         4 => {
                             let index = feed.next_u16();
+                            Instruction::InstanceGet(index)
+                        },
+                        5 => {
+                            let index = feed.next_u16();
+                            Instruction::InstanceSet(index)
+                        }
+                        6 => {
+                            let writable = feed.next_bool();
+                            Instruction::Declare(writable)
+                        },
+                        7 => {
+                            let index = feed.next_u16();
                             Instruction::Set(index)
                         },
-                        5 => Instruction::Add,
-                        6 => Instruction::Subtract,
-                        7 => Instruction::Multiply,
-                        8 => Instruction::Divide,
-                        9 => Instruction::Power,
-                        11 => Instruction::IntNegate,
-                        12 => Instruction::Less,
-                        13 => Instruction::Greater,
-                        14 => Instruction::Eq,
-                        15 => Instruction::LessOrEq,
-                        16 => Instruction::GreaterOrEq,
-                        17 => Instruction::NotEq,
-                        18 => Instruction::Is,
-                        19 => Instruction::LogicNegate,
-                        20 => {
+                        8 => {
                             let size = feed.next_u16();
                             Instruction::InitArray(size)
                         },
-                        21 => Instruction::IndexGet,
-                        22 => Instruction::IndexSet,
+                        9 => Instruction::IndexGet,
+                        10 => Instruction::IndexSet,
+                        11 => Instruction::Add,
+                        12 => Instruction::Subtract,
+                        13 => Instruction::Multiply,
+                        14 => Instruction::Divide,
+                        15 => Instruction::Power,
+                        16 => Instruction::IntNegate,
+                        17 => Instruction::Less,
+                        18 => Instruction::Greater,
+                        19 => Instruction::Eq,
+                        20 => Instruction::LessOrEq,
+                        21 => Instruction::GreaterOrEq,
+                        22 => Instruction::NotEq,
+                        23 => Instruction::Is,
+                        24 => Instruction::LogicNegate,
+                        25 => {
+                            let index = feed.next_u16();
+                            let conditional = feed.next_bool();
+                            Instruction::Jump(index, conditional)
+                        },
+                        26 => {
+                            let to_clear = feed.next_u16();
+                            Instruction::ExitBlock(to_clear)
+                        },
+                        27 => Instruction::Call,
+                        28 => {
+                            let index = feed.next_u16();
+                            Instruction::CallInstance(index)
+                        },
+                        29 => {
+                            let with_value = feed.next_bool();
+                            Instruction::Return(with_value)
+                        },
+                        30 => {
+                            let name_index = feed.next_u16();
+                            Instruction::GetType(name_index)
+                        },
                         _ => panic!("Unknown instruction!")
                     };
                     instructions.push(instruction)

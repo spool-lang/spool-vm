@@ -127,7 +127,7 @@ impl VM {
             Instruction::IndexGet => self.index_get(),
             Instruction::IndexSet => self.index_set(),
             Instruction::Jump(index, conditional) => return self.jump(index, conditional),
-            Instruction::ExitScope(to_clear) => self.register.clear_space(*to_clear),
+            Instruction::ExitBlock(to_clear) => self.register.clear_space(*to_clear),
             Instruction::Call => self.call(),
             Instruction::CallInstance(name_index) => self.call_instance(*name_index),
             Instruction::Return(with_value) => return self.return_from(*with_value),
