@@ -30,8 +30,21 @@ fn main() {
     let mut chunk = Chunk::new();
     chunk.write_name(0, vm.pool_string("spool.core.Object"));
 
+    chunk.write_const(0, Bool(true));
+
     chunk.write_instruction(GetType(0));
     chunk.write_instruction(New(0));
+    chunk.write_instruction(Declare(false));
+    chunk.write_instruction(Get(0, false));
+    chunk.write_instruction(Print);
+    chunk.write_instruction(Get(0, false));
+    chunk.write_instruction(InstanceGet(0));
+    chunk.write_instruction(Print);
+    chunk.write_instruction(Get(0, true));
+    chunk.write_instruction(Get(0, false));
+    chunk.write_instruction(InstanceSet(0));
+    chunk.write_instruction(Get(0, false));
+    chunk.write_instruction(InstanceGet(0));
     chunk.write_instruction(Print);
 
     vm.run(chunk)

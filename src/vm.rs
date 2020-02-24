@@ -107,6 +107,8 @@ impl VM {
             Instruction::Declare(writable) => self.declare(writable),
             Instruction::Set(index) => self.set(index),
             Instruction::New(index) => self.new_instance(index),
+            Instruction::InstanceGet(index) => self.instance_get(*index),
+            Instruction::InstanceSet(index) => self.instance_set(*index),
             Instruction::Add => self.add(),
             Instruction::Subtract => self.subtract(),
             Instruction::Multiply => self.multiply(),
@@ -162,6 +164,35 @@ impl VM {
         let _type = self.pop_type_stack();
         let ctor = _type.get_ctor(*index as usize);
         self.call_function(None, ctor);
+    }
+
+    fn instance_get(&mut self, index: u16) {
+        let instance = self.pop_stack();
+        if let Object(_type, values) = instance {
+            let prop = _type.get_prop(index as usize);
+            match values.borrow().get(prop.name.as_ref()) {
+                None => panic!(),
+                Some(value) => self.push_stack(value.clone())
+            }
+            return;
+        }
+        panic!()
+    }
+
+    fn instance_set(&mut self, index: u16) {
+        let instance = self.pop_stack();
+        let value = self.pop_stack();
+        if let Object(_type, values) = instance {
+            let prop = _type.get_prop(index as usize);
+            let value_type = self.type_registry.get(value.get_canonical_name());
+            let prop_type = self.type_registry.get(prop._type.clone());
+
+            if prop.writable && values.borrow().contains_key(prop.name.as_ref()) && prop_type.matches_type(value_type) {
+                values.borrow_mut().insert(prop.name.clone(), value);
+                return;
+            }
+        }
+        panic!()
     }
 
     fn add(&mut self) {

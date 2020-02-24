@@ -7,23 +7,43 @@ use crate::vm::VM;
 
 pub(crate) mod number;
 
+// Stores information about properties for a type.
+#[derive(Debug)]
+pub struct Property {
+    pub(crate) name: Rc<String>,
+    pub(crate) writable: bool,
+    pub(crate) _type: Rc<String>
+}
+
+impl Property {
+    fn new(name: Rc<String>, writable: bool, _type: Rc<String>) -> Property {
+        Property {
+            name,
+            writable,
+            _type
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Type {
     pub(crate) canonical_name: Rc<String>,
     supertype: Option<Rc<Type>>,
     ctors: Vec<Function>,
     ctorable: bool,
-    instance_functions: HashMap<Rc<String>, Function>
+    instance_functions: HashMap<Rc<String>, Function>,
+    props: Vec<Rc<Property>>
 }
 
 impl Type {
-    pub fn new(canonical_name: Rc<String>, supertype: Option<Rc<Type>>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>) -> Type {
+    pub fn new(canonical_name: Rc<String>, supertype: Option<Rc<Type>>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>, props: Vec<Rc<Property>>) -> Type {
         Type {
             canonical_name,
             supertype,
             ctors,
             ctorable,
-            instance_functions
+            instance_functions,
+            props
         }
     }
 
@@ -46,17 +66,6 @@ impl Type {
         }
     }
 
-    pub(crate) fn get_instance_func(&self, name: Rc<String>) -> Function {
-        let sup_op = self.supertype.clone();
-        return match self.instance_functions.get(&*name.clone()) {
-            None => match sup_op {
-                None => panic!(),
-                Some(sup) => sup.get_instance_func(name),
-            },
-            Some(thing) => thing.clone(),
-        }
-    }
-
     pub(crate) fn get_ctor(&self, index: usize) -> Function {
         if !self.ctorable { panic!() }
         match self.ctors.get(index) {
@@ -70,6 +79,31 @@ impl Type {
             Some(ctor) => ctor.clone(),
         }
     }
+
+    pub(crate) fn get_instance_func(&self, name: Rc<String>) -> Function {
+        let sup_op = self.supertype.clone();
+        return match self.instance_functions.get(&*name.clone()) {
+            None => match sup_op {
+                None => panic!(),
+                Some(sup) => sup.get_instance_func(name),
+            },
+            Some(thing) => thing.clone(),
+        }
+    }
+
+    pub(crate) fn get_prop(&self, index: usize) -> Rc<Property> {
+        if !self.ctorable { panic!() }
+        match self.props.get(index) {
+            None => {
+                let sup_op = self.supertype.clone();
+                match sup_op {
+                    None => panic!(),
+                    Some(supertype) => supertype.get_prop(index),
+                }
+            },
+            Some(prop) => Rc::clone(prop),
+        }
+    }
 }
 
 struct TypeBuilder {
@@ -77,7 +111,8 @@ struct TypeBuilder {
     supertype: Option<Rc<Type>>,
     ctors: Vec<Function>,
     ctorable: bool,
-    instance_functions: HashMap<Rc<String>, Function>
+    instance_functions: HashMap<Rc<String>, Function>,
+    props: Vec<Rc<Property>>
 }
 
 impl TypeBuilder {
@@ -87,7 +122,8 @@ impl TypeBuilder {
             supertype: None,
             ctors: vec![],
             ctorable: false,
-            instance_functions: Default::default()
+            instance_functions: Default::default(),
+            props: vec![]
         }
     }
 
@@ -112,8 +148,13 @@ impl TypeBuilder {
         self
     }
 
+    fn prop(mut self, prop: Property) -> TypeBuilder {
+        self.props.push(Rc::new(prop));
+        self
+    }
+
     fn build(self) -> Type {
-        Type::new(self.canonical_name, self.supertype, self.ctors, self.ctorable, self.instance_functions)
+        Type::new(self.canonical_name, self.supertype, self.ctors, self.ctorable, self.instance_functions, self.props)
     }
 }
 
@@ -164,22 +205,28 @@ impl TypeRegistry {
 
 pub(crate) mod object_type {
     use crate::string_pool::StringPool;
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, Property};
     use std::rc::Rc;
     use crate::vm::VM;
     use crate::instance::Instance;
-    use crate::instance::Instance::Object;
+    use crate::instance::Instance::{Object, Bool};
+    use std::collections::HashMap;
+    use std::cell::RefCell;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Object"))
             .ctor(0, ctor)
+            .prop(Property::new(string_pool.pool_str("funny"), true, string_pool.pool_str("spool.core.Boolean")))
             .build();
         type_registry.register(_type)
     }
 
     fn ctor(vm: &mut VM, args: Vec<Instance>) -> Instance {
         let _type = vm.type_from_name("spool.core.Object");
-        return Object(_type)
+        let mut values = HashMap::new();
+        values.insert(vm.pool_string("funny"), Bool(false));
+
+        return Object(_type, Rc::new(RefCell::new(values)));
     }
 }
 

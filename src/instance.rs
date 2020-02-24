@@ -5,13 +5,14 @@ use std::fmt::{Display, Formatter, Error, Debug};
 use std::fmt;
 use crate::vm::{VM};
 use crate::_type::Type;
+use std::collections::HashMap;
 
 // Represents instances created at runtime
 #[derive(Clone, Debug)]
 pub enum Instance {
     // Represents both instances of the builtin object type & instances
     // of non-builtin subtypes.
-    Object(Rc<Type>),
+    Object(Rc<Type>, Rc<RefCell<HashMap<Rc<String>, Instance>>>),
     Bool(bool),
     Byte(i8),
     UByte(u8),
@@ -55,25 +56,25 @@ impl Instance {
     pub fn get_canonical_name(&self) -> Rc<String> {
         Rc::new(
             match self {
-                Instance::Object(_type) => _type.canonical_name.as_str(),
-                Instance::Bool(_) => "silicon.core.Boolean",
-                Instance::Byte(_) => "silicon.core.Byte",
-                Instance::UByte(_) => "silicon.core.UByte",
-                Instance::Int16(_) => "silicon.core.Int16",
-                Instance::UInt16(_) => "silicon.core.UInt16",
-                Instance::Int32(_) => "silicon.core.Int32",
-                Instance::UInt32(_) => "silicon.core.UInt32",
-                Instance::Int64(_) => "silicon.core.Int64",
-                Instance::UInt64(_) => "silicon.core.UInt64",
-                Instance::Int128(_) => "silicon.core.Int128",
-                Instance::UInt128(_) => "silicon.core.UInt128",
-                Instance::Float32(_) => "silicon.core.Float32",
-                Instance::Float64(_) => "silicon.core.Float64",
-                Instance::Char(_) => "silicon.core.Char",
-                Instance::Str(_) => "silicon.core.String",
-                Instance::Array(_, _) => "silicon.core.Array",
-                Instance::Func(_) => "silicon.core.Func",
-                Instance::Void => "silicon.core.Void",
+                Instance::Object(_type, _) => _type.canonical_name.as_str(),
+                Instance::Bool(_) => "spool.core.Boolean",
+                Instance::Byte(_) => "spool.core.Byte",
+                Instance::UByte(_) => "spool.core.UByte",
+                Instance::Int16(_) => "spool.core.Int16",
+                Instance::UInt16(_) => "spool.core.UInt16",
+                Instance::Int32(_) => "spool.core.Int32",
+                Instance::UInt32(_) => "spool.core.UInt32",
+                Instance::Int64(_) => "spool.core.Int64",
+                Instance::UInt64(_) => "spool.core.UInt64",
+                Instance::Int128(_) => "spool.core.Int128",
+                Instance::UInt128(_) => "spool.core.UInt128",
+                Instance::Float32(_) => "spool.core.Float32",
+                Instance::Float64(_) => "spool.core.Float64",
+                Instance::Char(_) => "spool.core.Char",
+                Instance::Str(_) => "spool.core.String",
+                Instance::Array(_, _) => "spool.core.Array",
+                Instance::Func(_) => "spool.core.Func",
+                Instance::Void => "spool.core.Void",
                 _ => ""
             }.to_string()
         )
@@ -83,7 +84,7 @@ impl Instance {
 impl Display for Instance {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         return match self {
-            Instance::Object(_) => write!(f, "{}", "object"),
+            Instance::Object(_, _) => write!(f, "{}", "object"),
             Instance::Bool(boolean) => write!(f, "{}", boolean),
             Instance::Byte(byte) => write!(f, "{}b", byte),
             Instance::UByte(ubyte) => write!(f, "{}ub", ubyte),
@@ -133,35 +134,5 @@ impl Debug for Function {
             Function::Native(_, _) => write!(f, "{:?}", "native_function"),
             Function::NativeInstance(_, _) => write!(f, "{:?}", "native_function")
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct Variable {
-    pub(crate) is_const: bool,
-    pub(crate) stored: Instance,
-    pub(crate) _type: Rc<Type>
-}
-
-impl Variable {
-
-    pub(crate) fn new(is_const: bool, stored: Instance, _type: Rc<Type>) -> Variable {
-        Variable {
-            is_const,
-            stored,
-            _type
-        }
-    }
-
-    pub(crate) fn set(&mut self, instance: Instance) {
-        if self.is_const {
-            panic!("Attempted to set constant variable!")
-        }
-
-        if true {
-            self.stored = instance;
-            return;
-        }
-        panic!("Type mismatch!")
     }
 }
