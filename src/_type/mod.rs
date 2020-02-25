@@ -187,6 +187,7 @@ impl TypeRegistry {
         array_type::create(string_pool, &mut _self);
         func_type::create(string_pool, &mut _self);
         void_type::create(string_pool, &mut _self);
+        console_type::create(string_pool, &mut _self);
         _self
     }
 
@@ -322,5 +323,40 @@ pub(crate) mod void_type {
             .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
             .build();
         type_registry.register(_type)
+    }
+}
+
+pub(crate) mod console_type {
+    use crate::string_pool::StringPool;
+    use crate::_type::{TypeBuilder, TypeRegistry};
+    use std::rc::Rc;
+    use crate::vm::VM;
+    use crate::instance::Instance;
+    use crate::instance::Instance::{Void, Bool, Object};
+    use std::collections::HashMap;
+    use std::cell::RefCell;
+
+    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
+        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Console"))
+            .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
+            .ctor(0, ctor)
+            .instance_function(string_pool.pool_str("println"), 1, println)
+            .build();
+        type_registry.register(_type)
+    }
+
+    fn ctor(vm: &mut VM, args: Vec<Instance>) -> Instance {
+        let _type = vm.type_from_name("spool.core.Console");
+        let mut values = HashMap::new();
+
+        return Object(_type, Rc::new(RefCell::new(values)));
+    }
+
+    fn println(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
+        println!("{}", match args.get(0) {
+            None => panic!(),
+            Some(instance) => instance
+        });
+        return Void
     }
 }
