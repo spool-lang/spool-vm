@@ -93,30 +93,30 @@ impl Instruction {
                         0 => Instruction::GetTrue,
                         1 => Instruction::GetFalse,
                         2 => {
+                            let writable = feed.next_bool();
+                            Instruction::Declare(writable)
+                        },
+                        3 => {
+                            let index = feed.next_u16();
+                            Instruction::Set(index)
+                        },
+                        4 => {
                             let index = feed.next_u16();
                             let from_chunk = feed.next_bool();
                             Instruction::Get(index, from_chunk)
                         },
-                        3 => {
+                        5 => {
                             let index = feed.next_u16();
                             Instruction::New(index)
                         },
-                        4 => {
+                        6 => {
                             let index = feed.next_u16();
                             Instruction::InstanceGet(index)
                         },
-                        5 => {
+                        7 => {
                             let index = feed.next_u16();
                             Instruction::InstanceSet(index)
                         }
-                        6 => {
-                            let writable = feed.next_bool();
-                            Instruction::Declare(writable)
-                        },
-                        7 => {
-                            let index = feed.next_u16();
-                            Instruction::Set(index)
-                        },
                         8 => {
                             let size = feed.next_u16();
                             Instruction::InitArray(size)
