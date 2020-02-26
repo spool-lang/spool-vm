@@ -693,6 +693,7 @@ impl VMRegister {
     }
 }
 
+#[derive(Debug)]
 struct RegisterEntry {
     instance: Instance,
     writable: bool

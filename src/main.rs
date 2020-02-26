@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, fs};
 use std::process;
 
 use spool_vm;
@@ -14,6 +14,7 @@ use crate::string_pool::StringPool;
 use std::cell::RefCell;
 use crate::vm::VM;
 use crate::instance::Function::Native;
+use std::io::Error;
 
 mod vm;
 mod instruction;
@@ -26,19 +27,17 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     let mut vm = VM::new();
-
-    let mut chunk = Chunk::new();
-    chunk.write_name(0, vm.pool_string("spool.core.Console"));
-    chunk.write_name(1, vm.pool_string("println"));
-
-    chunk.write_const(0, Str(vm.pool_string("Hello, world!")));
-
-    chunk.write_instruction(GetType(0));
-    chunk.write_instruction(New(0));
-    chunk.write_instruction(Declare(false));
-    chunk.write_instruction(Get(0, true));
-    chunk.write_instruction(Get(0, false));
-    chunk.write_instruction(CallInstance(1));
+    let bytecode = load_bytecode("test.sbc");
+    let chunk = Chunk::from_bytes(bytecode);
 
     vm.run(chunk)
+}
+
+fn load_bytecode(filename: &str) -> Vec<u8> {
+    let contents = fs::read(filename);
+
+    match contents {
+        Ok(bytes) => bytes,
+        Err(_) => panic!(),
+    }
 }

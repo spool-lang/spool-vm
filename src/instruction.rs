@@ -3,6 +3,9 @@ use crate::instance::Instance;
 use std::rc::Rc;
 use std::slice::Iter;
 use crate::instruction::Instruction::Call;
+use std::string::FromUtf8Error;
+use crate::instance::Instance::{Str, Int16, Bool};
+use std::num::ParseIntError;
 
 struct ByteFeed<'a> {
     bytes: Iter<'a, u8>
@@ -15,7 +18,7 @@ impl ByteFeed<'_> {
         }
     }
 
-    fn next_instruction_byte(&mut self) -> Option<&u8> {
+    fn try_next_byte(&mut self) -> Option<&u8> {
         self.bytes.next()
     }
 
@@ -36,8 +39,34 @@ impl ByteFeed<'_> {
         match self.next_byte() {
             0 => false,
             1 => true,
-            _ => panic!("Expected u8 of value 1 or 0!")
+            _ => panic!("Expected u8 of value 1 or 0! Instead got {}", )
         }
+    }
+
+    fn next_char(&mut self) -> Option<char> {
+        let option = self.try_next_byte();
+        match option {
+            None => None,
+            Some(byte) => {
+                match String::from_utf8([*byte].to_vec()) {
+                    Ok(string) => {
+                        return string.chars().next()
+                    },
+                    Err(error) => {
+                        println!("{}", error);
+                        panic!()
+                    },
+                }
+            }
+        }
+    }
+
+    fn split(&mut self, amount: u16) -> Vec<u8> {
+        let mut bytes = vec![];
+        for _ in 0..amount {
+            bytes.push(self.next_byte())
+        }
+        return bytes
     }
 }
 
@@ -81,12 +110,11 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    fn from_bytes(bytes: Vec<u8>) -> Vec<Instruction> {
-        let mut instructions = vec![];
+    fn from_bytes(bytes: Vec<u8>, buffer: &mut Vec<Instruction>) {
         let mut feed = ByteFeed::new(bytes.iter());
 
         loop {
-            match feed.next_instruction_byte() {
+            match feed.try_next_byte() {
                 None => break,
                 Some(byte) => {
                     let instruction = match byte {
@@ -161,18 +189,16 @@ impl Instruction {
                         },
                         _ => panic!("Unknown instruction!")
                     };
-                    instructions.push(instruction)
+                    buffer.push(instruction)
                 },
             }
         }
-
-        return instructions;
     }
 }
 
 #[derive(Debug)]
 pub struct Chunk {
-    pub op_codes: Vec<Instruction>,
+    pub instructions: Vec<Instruction>,
     pub is_locked: bool,
     pub jump_table: HashMap<u16, usize>,
     pub const_table:  HashMap<u16, Instance>,
@@ -182,7 +208,7 @@ pub struct Chunk {
 impl Chunk {
     pub fn new() -> Chunk {
         Chunk {
-            op_codes: vec![],
+            instructions: vec![],
             is_locked: false,
             jump_table: Default::default(),
             const_table: Default::default(),
@@ -190,11 +216,109 @@ impl Chunk {
         }
     }
 
+    pub fn from_bytes(bytes: Vec<u8>) -> Chunk {
+        let mut feed = ByteFeed::new(bytes.iter());
+
+        let mut chunk = Chunk::new();
+
+        loop {
+            match feed.next_char() {
+                None => {
+                    return chunk
+                },
+                Some(c) => {
+                    if c == '#' {
+                        let mut current_string = "".to_string();
+                        loop {
+                            let c2 = feed.next_char().unwrap();
+                            if c2 == '(' { break }
+                            current_string.push(c2)
+                        }
+
+                        current_string.clear();
+                        let mut index = 0;
+
+                        loop {
+                            let c2 = feed.next_char().unwrap();
+
+                            if c2 == ';' {
+                                chunk.write_name(index, Rc::from(current_string.clone()));
+                                current_string.clear();
+                                break
+                            }
+                            if c2 == ',' {
+                                chunk.write_name(index, Rc::from(current_string.clone()));
+                                current_string.clear();
+                                index += 1
+                            }
+                            else {
+                                current_string.push(c2)
+                            }
+                        }
+
+                        current_string.clear();
+                        index = 0;
+
+                        loop {
+                            let mut c2 = feed.next_char().unwrap();
+
+                            if c2 == '"' {
+                                loop {
+                                    let c3 = feed.next_char().unwrap();
+                                    if c3 == '"' {
+                                        chunk.write_const(index, Str(Rc::new(current_string.clone())));
+                                        index += 1;
+                                        current_string.clear();
+                                        c2 = feed.next_char().unwrap();
+                                        break
+                                    }
+                                    current_string.push(c3)
+                                }
+                            }
+
+                            if c2 == ';' { break }
+                            if c2 == ',' {
+                                let int = str::parse::<i16>(current_string.as_str());
+                                let boolean = str::parse::<bool>(current_string.as_str());
+                                if int.is_ok() {
+                                    chunk.write_const(index, Int16(int.unwrap()))
+                                }
+                                else if boolean.is_ok() {
+                                    chunk.write_const(index, Bool(boolean.unwrap()))
+                                }
+                                else {panic!()}
+
+                                current_string.clear();
+                                index += 1
+                            }
+                            current_string.push(c2);
+                        }
+
+                        current_string.clear();
+                        loop {
+                            let c2 = feed.next_char().unwrap();
+                            if c2 == ')' { break }
+                            current_string.push(c2)
+                        }
+                        match str::parse::<u16>(current_string.as_str()) {
+                            Ok(count) => {
+                                let instruction_bytes = feed.split(count);
+                                Instruction::from_bytes(instruction_bytes, chunk.instructions.as_mut())
+                            },
+                            Err(_) => panic!(),
+                        }
+                    }
+                    else {panic!()}
+                },
+            }
+        }
+    }
+
     pub fn write_instruction(&mut self, op : Instruction) {
         if self.is_locked {
             panic!("Attempted to write to locked chunk!")
         }
-        self.op_codes.push(op)
+        self.instructions.push(op)
     }
 
     pub fn write_jump(&mut self, index: u16, point: usize) {
@@ -223,7 +347,7 @@ impl Chunk {
     }
 
     pub fn get(&self, pt : usize) -> Option<&Instruction> {
-        return self.op_codes.get(pt)
+        return self.instructions.get(pt)
     }
 
     pub fn get_const(&self, index: u16) -> Instance {
