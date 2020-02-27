@@ -270,7 +270,6 @@ impl Chunk {
                             }
                             else if (c2 == ',' || c2 == ';') && !string_mode {
                                 if found_string {
-                                    println!("current_string = {}", current_string);
                                     chunk.write_const(index, Str(Rc::new(current_string.clone())));
                                     current_string.clear();
                                     found_string = false

@@ -341,6 +341,7 @@ pub(crate) mod console_type {
             .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
             .ctor(0, ctor)
             .instance_function(string_pool.pool_str("println"), 1, println)
+            .instance_function(string_pool.pool_str("print"), 1, print)
             .build();
         type_registry.register(_type)
     }
@@ -354,6 +355,14 @@ pub(crate) mod console_type {
 
     fn println(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
         println!("{}", match args.get(0) {
+            None => panic!(),
+            Some(instance) => instance
+        });
+        return Void
+    }
+
+    fn print(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
+        print!("{}", match args.get(0) {
             None => panic!(),
             Some(instance) => instance
         });
