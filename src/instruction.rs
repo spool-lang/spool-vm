@@ -259,39 +259,41 @@ impl Chunk {
                         current_string.clear();
                         index = 0;
 
+                        let mut string_mode = false;
+                        let mut found_string = false;
                         loop {
-                            let mut c2 = feed.next_char().unwrap();
+                            let c2 = feed.next_char().unwrap();
 
                             if c2 == '"' {
-                                loop {
-                                    let c3 = feed.next_char().unwrap();
-                                    if c3 == '"' {
-                                        chunk.write_const(index, Str(Rc::new(current_string.clone())));
-                                        index += 1;
-                                        current_string.clear();
-                                        c2 = feed.next_char().unwrap();
-                                        break
-                                    }
-                                    current_string.push(c3)
-                                }
+                                string_mode = !string_mode;
+                                found_string = true
                             }
-
-                            if c2 == ';' { break }
-                            if c2 == ',' {
-                                let int = str::parse::<i16>(current_string.as_str());
-                                let boolean = str::parse::<bool>(current_string.as_str());
-                                if int.is_ok() {
-                                    chunk.write_const(index, Int16(int.unwrap()))
+                            else if (c2 == ',' || c2 == ';') && !string_mode {
+                                if found_string {
+                                    println!("current_string = {}", current_string);
+                                    chunk.write_const(index, Str(Rc::new(current_string.clone())));
+                                    current_string.clear();
+                                    found_string = false
                                 }
-                                else if boolean.is_ok() {
-                                    chunk.write_const(index, Bool(boolean.unwrap()))
+                                else {
+                                    let int = str::parse::<i16>(current_string.as_str());
+                                    let boolean = str::parse::<bool>(current_string.as_str());
+                                    if int.is_ok() {
+                                        chunk.write_const(index, Int16(int.unwrap()))
+                                    }
+                                    else if boolean.is_ok() {
+                                        chunk.write_const(index, Bool(boolean.unwrap()))
+                                    }
+                                    else {
+                                        panic!()
+                                    }
                                 }
-                                else {panic!()}
 
+                                if c2 == ';' { break }
                                 current_string.clear();
                                 index += 1
                             }
-                            current_string.push(c2);
+                            else { current_string.push(c2); }
                         }
 
                         current_string.clear();
