@@ -121,6 +121,8 @@ impl VM {
             Instruction::GreaterOrEq => self.greater_eq(),
             Instruction::LessOrEq => self.less_eq(),
             Instruction::NotEq => self.not_eq(),
+            Instruction::And => self.and(),
+            Instruction::Or => self.or(),
             Instruction::Is => self.is(),
             Instruction::LogicNegate => self.logic_negate(),
             Instruction::InitArray(size) => self.init_array(*size),
@@ -355,6 +357,28 @@ impl VM {
         let right = self.pop_stack();
         let value = Bool(!self.equate(&left, &right));
         self.push_stack(value)
+    }
+
+    fn and(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        if let (Bool(l), Bool(r)) = (left, right) {
+            let value = Bool(l && r);
+            self.push_stack(value);
+            return;
+        }
+        panic!()
+    }
+
+    fn or(&mut self) {
+        let left = self.pop_stack();
+        let right = self.pop_stack();
+        if let (Bool(l), Bool(r)) = (left, right) {
+            let value = Bool(l || r);
+            self.push_stack(value);
+            return;
+        }
+        panic!()
     }
 
     fn order(&mut self, left: &Instance, right: &Instance) -> bool {

@@ -96,6 +96,8 @@ pub enum Instruction {
     LessOrEq,
     GreaterOrEq,
     NotEq,
+    And,
+    Or,
     Is,
     LogicNegate,
     Concat,
@@ -163,27 +165,29 @@ impl Instruction {
                         20 => Instruction::LessOrEq,
                         21 => Instruction::GreaterOrEq,
                         22 => Instruction::NotEq,
-                        23 => Instruction::Is,
-                        24 => Instruction::LogicNegate,
-                        25 => {
+                        23 => Instruction::And,
+                        24 => Instruction::Or,
+                        25 => Instruction::Is,
+                        26 => Instruction::LogicNegate,
+                        27 => {
                             let index = feed.next_u16();
                             let conditional = feed.next_bool();
                             Instruction::Jump(index, conditional)
                         },
-                        26 => {
+                        28 => {
                             let to_clear = feed.next_u16();
                             Instruction::ExitBlock(to_clear)
                         },
-                        27 => Instruction::Call,
-                        28 => {
+                        29 => Instruction::Call,
+                        30 => {
                             let index = feed.next_u16();
                             Instruction::CallInstance(index)
                         },
-                        29 => {
+                        31 => {
                             let with_value = feed.next_bool();
                             Instruction::Return(with_value)
                         },
-                        30 => {
+                        32 => {
                             let name_index = feed.next_u16();
                             Instruction::GetType(name_index)
                         },
