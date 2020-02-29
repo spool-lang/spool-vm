@@ -377,10 +377,11 @@ pub(crate) mod random_type {
     use std::rc::Rc;
     use crate::vm::VM;
     use crate::instance::Instance;
-    use crate::instance::Instance::{Void, Bool, Object, Int16};
+    use crate::instance::Instance::{Void, Bool, Object, Int16, Random};
     use std::collections::HashMap;
     use std::cell::RefCell;
     use rand::{thread_rng, Rng};
+    use std::borrow::BorrowMut;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Random"))
@@ -392,16 +393,17 @@ pub(crate) mod random_type {
     }
 
     fn ctor(vm: &mut VM, args: Vec<Instance>) -> Instance {
-        let _type = vm.type_from_name("spool.core.Random");
-        let mut values = HashMap::new();
-
-        return Object(_type, Rc::new(RefCell::new(values)));
+        return Random(Box::new(thread_rng()))
     }
 
     fn next_int16(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
         if let (Some(Int16(start)), Some(Int16(end))) = (args.get(0), args.get(1)) {
-            let mut rng = thread_rng();
-            return Int16(rng.gen_range(start, end))
+            match instance {
+                Random(mut rng) => {
+                    return Int16(rng.gen_range(start, end))
+                }
+                _ => panic!()
+            }
         }
         panic!()
     }

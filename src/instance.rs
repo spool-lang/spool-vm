@@ -6,6 +6,7 @@ use std::fmt;
 use crate::vm::{VM};
 use crate::_type::Type;
 use std::collections::HashMap;
+use rand::prelude::ThreadRng;
 
 // Represents instances created at runtime
 #[derive(Clone, Debug)]
@@ -13,6 +14,7 @@ pub enum Instance {
     // Represents both instances of the builtin object type & instances
     // of non-builtin subtypes.
     Object(Rc<Type>, Rc<RefCell<HashMap<Rc<String>, Instance>>>),
+    Random(Box<ThreadRng>),
     Bool(bool),
     Byte(i8),
     UByte(u8),
@@ -57,6 +59,7 @@ impl Instance {
         Rc::new(
             match self {
                 Instance::Object(_type, _) => _type.canonical_name.as_str(),
+                Instance::Random(_) => "spool.core.Random",
                 Instance::Bool(_) => "spool.core.Boolean",
                 Instance::Byte(_) => "spool.core.number.Byte",
                 Instance::UByte(_) => "spool.core.number.UByte",
@@ -85,6 +88,7 @@ impl Display for Instance {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         return match self {
             Instance::Object(_, _) => write!(f, "{}", "object"),
+            Instance::Random(_) => write!(f, "{}", "random"),
             Instance::Bool(boolean) => write!(f, "{}", boolean),
             Instance::Byte(byte) => write!(f, "{}b", byte),
             Instance::UByte(ubyte) => write!(f, "{}ub", ubyte),
