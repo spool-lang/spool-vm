@@ -386,7 +386,7 @@ pub(crate) mod random_type {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Random"))
             .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
             .ctor(0, ctor)
-            .instance_function(string_pool.pool_str("printInt16"), 1, next_int16)
+            .instance_function(string_pool.pool_str("nextInt16"), 2, next_int16)
             .build();
         type_registry.register(_type)
     }

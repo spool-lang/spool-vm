@@ -521,6 +521,7 @@ impl VM {
 
                     args.push(instance)
                 }
+                args.reverse();
                 let stack_size = self.stack.len();
                 let type_stack_size = self.type_stack.len();
                 let register_size = self.register.size;
@@ -543,6 +544,7 @@ impl VM {
                 for x in 0..arity {
                     args.push(self.pop_stack())
                 }
+                args.reverse();
                 let returned = function(self, args);
                 if let Void = returned {} else { self.push_stack(returned) };
             },
@@ -554,6 +556,7 @@ impl VM {
                         for x in 0..arity {
                             args.push(self.pop_stack())
                         }
+                        args.reverse();
                         let returned = function(self, instance, args);
                         if let Void = returned {
                         } else { self.push_stack(returned) };
