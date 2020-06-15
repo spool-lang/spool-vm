@@ -6,6 +6,7 @@ use crate::instruction::Instruction::Call;
 use std::string::FromUtf8Error;
 use crate::instance::Instance::{Str, Int16, Bool};
 use std::num::ParseIntError;
+use crate::_type::Type;
 
 struct ByteFeed<'a> {
     bytes: Iter<'a, u8>
@@ -27,6 +28,10 @@ impl ByteFeed<'_> {
             None => panic!(),
             Some(byte) => *byte,
         }
+    }
+
+    fn peek_byte(&self) -> Option<&u8> {
+        *self.bytes.peekable().peek()
     }
 
     fn next_u16(&mut self) -> u16 {
@@ -58,6 +63,23 @@ impl ByteFeed<'_> {
                     },
                 }
             }
+        }
+    }
+
+    fn peek_char(&self) -> Option<char> {
+        match self.peek_byte() {
+            None => None,
+            Some(byte) => {
+                match String::from_utf8(vec![*byte]) {
+                    Ok(string) => {
+                        return string.chars().next()
+                    },
+                    Err(error) => {
+                        println!("{}", error);
+                        panic!()
+                    },
+                }
+            },
         }
     }
 
@@ -308,12 +330,13 @@ impl Chunk {
                         match str::parse::<u16>(current_string.as_str()) {
                             Ok(count) => {
                                 let instruction_bytes = feed.split(count);
-                                Instruction::from_bytes(instruction_bytes, chunk.instructions.as_mut())
+                                Instruction::from_bytes(instruction_bytes, chunk.instructions.as_mut());
+                                return chunk
                             },
                             Err(_) => panic!(),
                         }
                     }
-                    else {panic!()}
+                    else { panic!() }
                 },
             }
         }
@@ -371,5 +394,16 @@ impl Chunk {
             },
             None => panic!("Name table slot `{}` was empty.", index)
         };
+    }
+}
+
+pub enum LoadedBytecode {
+    ByChunk(Chunk),
+    ByType(Type)
+}
+
+impl LoadedBytecode {
+    fn from_bytes(bytes: Vec<u8>) -> Vec<LoadedBytecode> {
+        
     }
 }
