@@ -377,6 +377,7 @@ impl Chunk {
                                         chunk.write_const(index, Bool(boolean.unwrap()))
                                     }
                                     else {
+                                        //TODO: If there are no constants, this panics.
                                         panic!()
                                     }
                                 }
