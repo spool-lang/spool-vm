@@ -135,7 +135,8 @@ impl Display for Instance {
 pub enum Function {
     Standard(Vec<Rc<Type>>, Rc<Chunk>),
     Native(u8, fn(&mut VM, Vec<Instance>) -> Instance),
-    NativeInstance(u8, fn(&mut VM, Instance, Vec<Instance>) -> Instance)
+    NativeInstance(u8, fn(&mut VM, Instance, Vec<Instance>) -> Instance),
+    TestConstructor(u8, Rc<String>, fn(&mut VM, Vec<Instance>, Rc<String>) -> Instance)
 }
 
 impl Debug for Function {
@@ -143,7 +144,8 @@ impl Debug for Function {
         return match self {
             Function::Standard(_, _) => write!(f, "{:?}", "function"),
             Function::Native(_, _) => write!(f, "{:?}", "native_function"),
-            Function::NativeInstance(_, _) => write!(f, "{:?}", "native_function")
+            Function::NativeInstance(_, _) => write!(f, "{:?}", "native_function"),
+            Function::TestConstructor(_, _, _) => write!(f, "{:?}", "native_function")
         }
     }
 }

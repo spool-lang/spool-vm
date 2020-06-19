@@ -563,6 +563,15 @@ impl VM {
                     }
                 }
             },
+            Function::TestConstructor(arity, canonical_name, function) => {
+                let mut args: Vec<Instance> = vec![];
+                for x in 0..arity {
+                    args.push(self.pop_stack())
+                }
+                args.reverse();
+                let returned = function(self, args, canonical_name);
+                if let Void = returned { panic!() } else { self.push_stack(returned) };
+            },
             _ => panic!()
         }
     }

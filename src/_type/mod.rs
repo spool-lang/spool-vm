@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use crate::instance::{Function, Instance};
-use crate::instance::Function::{NativeInstance, Native};
+use crate::instance::Function::{NativeInstance, Native, TestConstructor};
 use std::collections::HashMap;
 use crate::string_pool::StringPool;
 use crate::vm::{VM, Mut};
@@ -120,7 +120,7 @@ impl Type {
 }
 
 #[derive(Debug)]
-pub(crate)  struct TypeRef {
+pub(crate) struct TypeRef {
     name: Rc<String>,
     cached: Option<Mut<Type>>
 }
@@ -191,8 +191,15 @@ impl TypeBuilder {
         return self
     }
 
-    pub(crate) fn ctor(mut self, arity: u8, ctor: fn(&mut VM, Vec<Instance>) -> Instance) -> TypeBuilder {
+    pub(crate) fn native_constructor(mut self, arity: u8, ctor: fn(&mut VM, Vec<Instance>) -> Instance) -> TypeBuilder {
         self.ctors.push(Native(arity, ctor));
+        self.ctorable = true;
+        self
+    }
+
+    pub(crate) fn native_test_constructor(mut self, arity: u8, ctor: fn(&mut VM, Vec<Instance>, Rc<String>) -> Instance) -> TypeBuilder {
+        let name = Rc::clone(&self.canonical_name);
+        self.ctors.push(TestConstructor(arity, name, ctor));
         self.ctorable = true;
         self
     }
@@ -299,7 +306,7 @@ pub(crate) mod object_type {
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Object"))
-            .ctor(0, ctor)
+            .native_constructor(0, ctor)
             .prop(Property::new(string_pool.pool_str("funny"), true, string_pool.pool_str("spool.core.Boolean")))
             .build();
         type_registry.register(_type)
@@ -422,7 +429,7 @@ pub(crate) mod console_type {
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Console"))
             .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
-            .ctor(0, ctor)
+            .native_constructor(0, ctor)
             .instance_function(string_pool.pool_str("println"), 1, println)
             .instance_function(string_pool.pool_str("print"), 1, print)
             .build();
@@ -468,7 +475,7 @@ pub(crate) mod random_type {
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Random"))
             .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
-            .ctor(0, ctor)
+            .native_constructor(0, ctor)
             .instance_function(string_pool.pool_str("nextInt16"), 2, next_int16)
             .build();
         type_registry.register(_type)

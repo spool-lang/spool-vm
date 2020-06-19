@@ -547,13 +547,13 @@ impl Bytecode {
 
         TypeBuilder::new(string_pool.pool_string(canonical_name))
             .supertype(TypeRef::new(string_pool.pool_string(super_canonical_name)))
-            .ctor(0, test_ctor)
+            .native_test_constructor(0, test_ctor)
             .build()
     }
 }
 
-fn test_ctor(vm: &mut VM, args: Vec<Instance>) -> Instance {
-    let _type = vm.type_from_name("Foo");
+fn test_ctor(vm: &mut VM, args: Vec<Instance>, canonical_name: Rc<String>) -> Instance {
+    let _type = vm.type_from_name(canonical_name.as_str());
     let mut values = HashMap::new();
     return Object(_type, Rc::new(RefCell::new(values)));
 }
