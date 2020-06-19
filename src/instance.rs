@@ -94,7 +94,7 @@ impl Instance {
 impl Display for Instance {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         return match self {
-            Instance::Object(_, _) => write!(f, "{}", "object"),
+            Instance::Object(_, _) => write!(f, "{}", self.get_canonical_name()),
             Instance::Random(_) => write!(f, "{}", "random"),
             Instance::Bool(boolean) => write!(f, "{}", boolean),
             Instance::Byte(byte) => write!(f, "{}b", byte),

@@ -35,10 +35,10 @@ impl VM {
         }
     }
 
-    pub fn run(&mut self, chunk: Chunk) {
+    pub fn run(&mut self, chunk: Rc<Chunk>) {
         self.type_registry.resolve_supertypes();
 
-        let frame = NewCallFrame::new(Rc::new(chunk));
+        let frame = NewCallFrame::new(chunk);
         self.push_call_frame(frame);
         self.execute();
     }

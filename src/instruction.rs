@@ -4,10 +4,14 @@ use std::rc::Rc;
 use std::slice::Iter;
 use crate::instruction::Instruction::Call;
 use std::string::FromUtf8Error;
-use crate::instance::Instance::{Str, Int16, Bool};
+use crate::instance::Instance::{Str, Int16, Bool, Object};
 use std::num::ParseIntError;
-use crate::_type::Type;
+use crate::_type::{Type, TypeBuilder, TypeRef};
 use std::str::Utf8Error;
+use crate::string_pool::StringPool;
+use crate::instruction::Bytecode::{LoadedType, LoadedMain};
+use crate::vm::{Mut, VM};
+use std::cell::RefCell;
 
 struct ByteFeed {
     vec: Vec<u8>,
@@ -20,6 +24,10 @@ impl ByteFeed {
             vec: bytes,
             index: 0
         }
+    }
+
+    fn empty(&self) -> bool {
+        self.index == self.vec.len()
     }
 
     fn next_byte(&mut self) -> Option<u8> {
@@ -136,7 +144,7 @@ impl ByteFeed {
 
     fn has_string(&mut self, string: &str) -> bool {
         let len = string.len();
-        let bytes = self.next_bytes(len);
+        let bytes = self.peek_bytes(len);
         let result = std::str::from_utf8(&bytes[..]);
 
         return match result {
@@ -149,8 +157,12 @@ impl ByteFeed {
         let has_string = self.has_string(string);
         let len = string.len();
 
+        if has_string {
+            self.index += len;
+            return true
+        }
 
-        return true
+        return false
     }
 
     fn split(&mut self, amount: u16) -> Vec<u8> {
@@ -207,39 +219,47 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    fn from_feed(feed: &mut ByteFeed) -> Instruction {
+    fn from_feed(feed: &mut ByteFeed) -> (Instruction, i32) {
         let byte = feed.next_byte().unwrap();
+        let mut bytes = 1;
 
-        match byte {
+        let instruction = match byte {
             0 => Instruction::GetTrue,
             1 => Instruction::GetFalse,
             2 => {
                 let writable = feed.next_bool().unwrap();
+                bytes += 1;
                 Instruction::Declare(writable)
             },
             3 => {
                 let index = feed.next_u16().unwrap();
+                bytes += 2;
                 Instruction::Set(index)
             },
             4 => {
                 let index = feed.next_u16().unwrap();
                 let from_chunk = feed.next_bool().unwrap();
+                bytes += 3;
                 Instruction::Get(index, from_chunk)
             },
             5 => {
                 let index = feed.next_u16().unwrap();
+                bytes += 2;
                 Instruction::New(index)
             },
             6 => {
                 let index = feed.next_u16().unwrap();
+                bytes += 2;
                 Instruction::InstanceGet(index)
             },
             7 => {
                 let index = feed.next_u16().unwrap();
+                bytes += 2;
                 Instruction::InstanceSet(index)
             }
             8 => {
                 let size = feed.next_u16().unwrap();
+                bytes += 2;
                 Instruction::InitArray(size)
             },
             9 => Instruction::IndexGet,
@@ -263,27 +283,37 @@ impl Instruction {
             27 => {
                 let index = feed.next_u16().unwrap();
                 let conditional = feed.next_bool().unwrap();
+                bytes += 3;
                 Instruction::Jump(index, conditional)
             },
             28 => {
                 let to_clear = feed.next_u16().unwrap();
+                bytes += 2;
                 Instruction::ExitBlock(to_clear)
             },
             29 => Instruction::Call,
             30 => {
                 let index = feed.next_u16().unwrap();
+                bytes += 2;
                 Instruction::CallInstance(index)
             },
             31 => {
                 let with_value = feed.next_bool().unwrap();
+                bytes += 1;
                 Instruction::Return(with_value)
             },
             32 => {
                 let name_index = feed.next_u16().unwrap();
+                bytes += 2;
                 Instruction::GetType(name_index)
             },
-            _ => panic!("Unknown instruction!")
-        }
+            _ => {
+                println!("Value {} does not correspond to a known instruction.", byte);
+                panic!()
+            }
+        };
+
+        return (instruction, bytes)
     }
 }
 
@@ -385,8 +415,11 @@ impl Chunk {
 
         match str::parse::<u16>(current_string.as_str()) {
             Ok(count) => {
-                for _x in 0..count {
-                    let instruction = Instruction::from_feed(feed);
+                let mut x = 0;
+
+                while x < count {
+                    let (instruction, bytes) = Instruction::from_feed(feed);
+                    x += bytes as u16;
                     chunk.write_instruction(instruction)
                 }
 
@@ -452,22 +485,75 @@ impl Chunk {
 }
 
 pub enum Bytecode {
-    LoadedMain(Chunk),
-    LoadedType(Type)
+    LoadedMain(Rc<Chunk>),
+    LoadedType(Mut<Type>)
 }
 
 impl Bytecode {
-    fn from_bytes(bytes: Vec<u8>) -> Vec<Chunk> {
+    pub(crate) fn from_bytes(bytes: Vec<u8>, string_pool: &mut StringPool) -> Vec<Bytecode> {
         let mut feed = ByteFeed::new(bytes);
         let mut bytecode_vec = vec![];
 
         loop {
-            if feed.has_string("#main") {
+            if feed.consume_string("#main(") {
                 let chunk = Chunk::from_bytes(&mut feed);
-                bytecode_vec.push(chunk)
+                bytecode_vec.push(LoadedMain(Rc::new(chunk)))
+            }
+            else if feed.consume_string("#class(") {
+                let class = Bytecode::load_class(&mut feed, string_pool);
+                bytecode_vec.push(LoadedType(Rc::new(RefCell::new(class))))
+            }
+            else if feed.empty() {
+                break
             }
         }
 
         return bytecode_vec
     }
+
+    fn load_class(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Type {
+        let mut canonical_name = "".to_string();
+        let mut super_canonical_name = "".to_string();
+
+        loop {
+            match feed.next_char() {
+                None => panic!(),
+                Some(ch) => {
+                    if ch == ';' {
+                        break
+                    }
+                    else {
+                        canonical_name.push(ch)
+                    }
+                },
+            }
+        }
+
+        loop {
+            match feed.next_char() {
+                None => panic!(),
+                Some(ch) => {
+                    if ch == ')' {
+                        break
+                    }
+                    else {
+                        super_canonical_name.push(ch)
+                    }
+                },
+            }
+        }
+
+        if !feed.consume_string("#endclass") { panic!() }
+
+        TypeBuilder::new(string_pool.pool_string(canonical_name))
+            .supertype(TypeRef::new(string_pool.pool_string(super_canonical_name)))
+            .ctor(0, test_ctor)
+            .build()
+    }
+}
+
+fn test_ctor(vm: &mut VM, args: Vec<Instance>) -> Instance {
+    let _type = vm.type_from_name("Foo");
+    let mut values = HashMap::new();
+    return Object(_type, Rc::new(RefCell::new(values)));
 }

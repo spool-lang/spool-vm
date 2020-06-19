@@ -37,7 +37,7 @@ pub struct Type {
 }
 
 impl Type {
-    pub fn new(canonical_name: Rc<String>, supertype: Option<TypeRef>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>, props: Vec<Rc<Property>>) -> Type {
+    pub(crate) fn new(canonical_name: Rc<String>, supertype: Option<TypeRef>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>, props: Vec<Rc<Property>>) -> Type {
         Type {
             canonical_name,
             supertype,
@@ -120,13 +120,13 @@ impl Type {
 }
 
 #[derive(Debug)]
-pub struct TypeRef {
+pub(crate)  struct TypeRef {
     name: Rc<String>,
     cached: Option<Mut<Type>>
 }
 
 impl TypeRef {
-    fn new(name: Rc<String>) -> TypeRef {
+    pub(crate) fn new(name: Rc<String>) -> TypeRef {
         TypeRef {
             name,
             cached: None
@@ -165,7 +165,7 @@ impl Clone for TypeRef {
     }
 }
 
-struct TypeBuilder {
+pub(crate) struct TypeBuilder {
     canonical_name: Rc<String>,
     supertype: Option<TypeRef>,
     ctors: Vec<Function>,
@@ -175,7 +175,7 @@ struct TypeBuilder {
 }
 
 impl TypeBuilder {
-    fn new(canonical_name: Rc<String>) -> TypeBuilder {
+    pub(crate) fn new(canonical_name: Rc<String>) -> TypeBuilder {
         TypeBuilder {
             canonical_name,
             supertype: None,
@@ -186,33 +186,33 @@ impl TypeBuilder {
         }
     }
 
-    fn supertype(mut self, supertype: TypeRef) -> TypeBuilder {
+    pub(crate) fn supertype(mut self, supertype: TypeRef) -> TypeBuilder {
         self.supertype = Some(supertype);
         return self
     }
 
-    fn ctor(mut self, arity: u8, ctor: fn(&mut VM, Vec<Instance>) -> Instance) -> TypeBuilder {
+    pub(crate) fn ctor(mut self, arity: u8, ctor: fn(&mut VM, Vec<Instance>) -> Instance) -> TypeBuilder {
         self.ctors.push(Native(arity, ctor));
         self.ctorable = true;
         self
     }
 
-    fn ctorable(mut self, ctorable: bool) -> TypeBuilder {
+    pub(crate) fn ctorable(mut self, ctorable: bool) -> TypeBuilder {
         self.ctorable = ctorable;
         self
     }
 
-    fn instance_function(mut self, name: Rc<String>, arity: u8, func: fn(&mut VM, Instance, Vec<Instance>) -> Instance) -> TypeBuilder {
+    pub(crate) fn instance_function(mut self, name: Rc<String>, arity: u8, func: fn(&mut VM, Instance, Vec<Instance>) -> Instance) -> TypeBuilder {
         self.instance_functions.insert(name, NativeInstance(arity, func));
         self
     }
 
-    fn prop(mut self, prop: Property) -> TypeBuilder {
+    pub(crate) fn prop(mut self, prop: Property) -> TypeBuilder {
         self.props.push(Rc::new(prop));
         self
     }
 
-    fn build(self) -> Type {
+    pub(crate) fn build(self) -> Type {
         Type::new(self.canonical_name, self.supertype, self.ctors, self.ctorable, self.instance_functions, self.props)
     }
 }
@@ -254,6 +254,11 @@ impl TypeRegistry {
     pub(crate) fn register(&mut self, _type: Type) {
         let name = Rc::clone(&_type.canonical_name);
         self.types.insert(name, Rc::from(RefCell::from(_type)));
+    }
+
+    pub(crate) fn register_ref(&mut self, _type: &Mut<Type>) {
+        let name = Rc::clone(&_type.borrow().canonical_name);
+        self.types.insert(name, Rc::clone(&_type));
     }
 
     pub(crate) fn resolve_supertypes(&mut self) {
