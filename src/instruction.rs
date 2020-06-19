@@ -145,6 +145,14 @@ impl ByteFeed {
         }
     }
 
+    fn consume_string(&mut self, string: &str) -> bool {
+        let has_string = self.has_string(string);
+        let len = string.len();
+
+
+        return true
+    }
+
     fn split(&mut self, amount: u16) -> Vec<u8> {
         let mut bytes = vec![];
         for _ in 0..amount {
@@ -199,93 +207,83 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    fn from_bytes(bytes: Vec<u8>, buffer: &mut Vec<Instruction>) {
-        let mut feed = ByteFeed::new(bytes);
+    fn from_feed(feed: &mut ByteFeed) -> Instruction {
+        let byte = feed.next_byte().unwrap();
 
-        loop {
-            match feed.next_byte() {
-                None => break,
-                Some(byte) => {
-                    let instruction = match byte {
-                        0 => Instruction::GetTrue,
-                        1 => Instruction::GetFalse,
-                        2 => {
-                            let writable = feed.next_bool().unwrap();
-                            Instruction::Declare(writable)
-                        },
-                        3 => {
-                            let index = feed.next_u16().unwrap();
-                            Instruction::Set(index)
-                        },
-                        4 => {
-                            let index = feed.next_u16().unwrap();
-                            let from_chunk = feed.next_bool().unwrap();
-                            Instruction::Get(index, from_chunk)
-                        },
-                        5 => {
-                            let index = feed.next_u16().unwrap();
-                            Instruction::New(index)
-                        },
-                        6 => {
-                            let index = feed.next_u16().unwrap();
-                            Instruction::InstanceGet(index)
-                        },
-                        7 => {
-                            let index = feed.next_u16().unwrap();
-                            Instruction::InstanceSet(index)
-                        }
-                        8 => {
-                            let size = feed.next_u16().unwrap();
-                            Instruction::InitArray(size)
-                        },
-                        9 => Instruction::IndexGet,
-                        10 => Instruction::IndexSet,
-                        11 => Instruction::Add,
-                        12 => Instruction::Subtract,
-                        13 => Instruction::Multiply,
-                        14 => Instruction::Divide,
-                        15 => Instruction::Power,
-                        16 => Instruction::IntNegate,
-                        17 => Instruction::Less,
-                        18 => Instruction::Greater,
-                        19 => Instruction::Eq,
-                        20 => Instruction::LessOrEq,
-                        21 => Instruction::GreaterOrEq,
-                        22 => Instruction::NotEq,
-                        23 => Instruction::And,
-                        24 => Instruction::Or,
-                        25 => Instruction::Is,
-                        26 => Instruction::LogicNegate,
-                        27 => {
-                            let index = feed.next_u16().unwrap();
-                            let conditional = feed.next_bool().unwrap();
-                            Instruction::Jump(index, conditional)
-                        },
-                        28 => {
-                            let to_clear = feed.next_u16().unwrap();
-                            Instruction::ExitBlock(to_clear)
-                        },
-                        29 => Instruction::Call,
-                        30 => {
-                            let index = feed.next_u16().unwrap();
-                            Instruction::CallInstance(index)
-                        },
-                        31 => {
-                            let with_value = feed.next_bool().unwrap();
-                            Instruction::Return(with_value)
-                        },
-                        32 => {
-                            let name_index = feed.next_u16().unwrap();
-                            Instruction::GetType(name_index)
-                        },
-                        _ => panic!("Unknown instruction!")
-                    };
-                    buffer.push(instruction)
-                },
+        match byte {
+            0 => Instruction::GetTrue,
+            1 => Instruction::GetFalse,
+            2 => {
+                let writable = feed.next_bool().unwrap();
+                Instruction::Declare(writable)
+            },
+            3 => {
+                let index = feed.next_u16().unwrap();
+                Instruction::Set(index)
+            },
+            4 => {
+                let index = feed.next_u16().unwrap();
+                let from_chunk = feed.next_bool().unwrap();
+                Instruction::Get(index, from_chunk)
+            },
+            5 => {
+                let index = feed.next_u16().unwrap();
+                Instruction::New(index)
+            },
+            6 => {
+                let index = feed.next_u16().unwrap();
+                Instruction::InstanceGet(index)
+            },
+            7 => {
+                let index = feed.next_u16().unwrap();
+                Instruction::InstanceSet(index)
             }
+            8 => {
+                let size = feed.next_u16().unwrap();
+                Instruction::InitArray(size)
+            },
+            9 => Instruction::IndexGet,
+            10 => Instruction::IndexSet,
+            11 => Instruction::Add,
+            12 => Instruction::Subtract,
+            13 => Instruction::Multiply,
+            14 => Instruction::Divide,
+            15 => Instruction::Power,
+            16 => Instruction::IntNegate,
+            17 => Instruction::Less,
+            18 => Instruction::Greater,
+            19 => Instruction::Eq,
+            20 => Instruction::LessOrEq,
+            21 => Instruction::GreaterOrEq,
+            22 => Instruction::NotEq,
+            23 => Instruction::And,
+            24 => Instruction::Or,
+            25 => Instruction::Is,
+            26 => Instruction::LogicNegate,
+            27 => {
+                let index = feed.next_u16().unwrap();
+                let conditional = feed.next_bool().unwrap();
+                Instruction::Jump(index, conditional)
+            },
+            28 => {
+                let to_clear = feed.next_u16().unwrap();
+                Instruction::ExitBlock(to_clear)
+            },
+            29 => Instruction::Call,
+            30 => {
+                let index = feed.next_u16().unwrap();
+                Instruction::CallInstance(index)
+            },
+            31 => {
+                let with_value = feed.next_bool().unwrap();
+                Instruction::Return(with_value)
+            },
+            32 => {
+                let name_index = feed.next_u16().unwrap();
+                Instruction::GetType(name_index)
+            },
+            _ => panic!("Unknown instruction!")
         }
-
-        return;
     }
 }
 
@@ -309,104 +307,92 @@ impl Chunk {
         }
     }
 
-    pub fn from_bytes(bytes: Vec<u8>) -> Chunk {
-        let mut feed = ByteFeed::new(bytes);
-
+    fn from_bytes(feed: &mut ByteFeed) -> Chunk {
         let mut chunk = Chunk::new();
 
+        let mut current_string = "".to_string();
+        let mut index = 0;
+
+        // Names
         loop {
-            match feed.next_char() {
-                None => {
-                    return chunk
-                },
-                Some(c) => {
-                    if c == '#' {
-                        let mut current_string = "".to_string();
-                        loop {
-                            let c2 = feed.next_char().unwrap();
-                            if c2 == '(' { break }
-                            current_string.push(c2)
-                        }
+            let c2 = feed.next_char().unwrap();
 
-                        current_string.clear();
-                        let mut index = 0;
-
-                        loop {
-                            let c2 = feed.next_char().unwrap();
-
-                            if c2 == ';' {
-                                chunk.write_name(index, Rc::from(current_string.clone()));
-                                current_string.clear();
-                                break
-                            }
-                            if c2 == ',' {
-                                chunk.write_name(index, Rc::from(current_string.clone()));
-                                current_string.clear();
-                                index += 1
-                            }
-                            else {
-                                current_string.push(c2)
-                            }
-                        }
-
-                        current_string.clear();
-                        index = 0;
-
-                        let mut string_mode = false;
-                        let mut found_string = false;
-                        loop {
-                            let c2 = feed.next_char().unwrap();
-
-                            if c2 == '"' {
-                                string_mode = !string_mode;
-                                found_string = true
-                            }
-                            else if (c2 == ',' || c2 == ';') && !string_mode {
-                                if found_string {
-                                    chunk.write_const(index, Str(Rc::new(current_string.clone())));
-                                    current_string.clear();
-                                    found_string = false
-                                }
-                                else {
-                                    let int = str::parse::<i16>(current_string.as_str());
-                                    let boolean = str::parse::<bool>(current_string.as_str());
-                                    if int.is_ok() {
-                                        chunk.write_const(index, Int16(int.unwrap()))
-                                    }
-                                    else if boolean.is_ok() {
-                                        chunk.write_const(index, Bool(boolean.unwrap()))
-                                    }
-                                    else {
-                                        //TODO: If there are no constants, this panics.
-                                        panic!()
-                                    }
-                                }
-
-                                if c2 == ';' { break }
-                                current_string.clear();
-                                index += 1
-                            }
-                            else { current_string.push(c2); }
-                        }
-
-                        current_string.clear();
-                        loop {
-                            let c2 = feed.next_char().unwrap();
-                            if c2 == ')' { break }
-                            current_string.push(c2)
-                        }
-                        match str::parse::<u16>(current_string.as_str()) {
-                            Ok(count) => {
-                                let instruction_bytes = feed.split(count);
-                                Instruction::from_bytes(instruction_bytes, chunk.instructions.as_mut());
-                                return chunk
-                            },
-                            Err(_) => panic!(),
-                        }
-                    }
-                    else { panic!() }
-                },
+            if c2 == ';' {
+                chunk.write_name(index, Rc::from(current_string.clone()));
+                current_string.clear();
+                break
             }
+            if c2 == ',' {
+                chunk.write_name(index, Rc::from(current_string.clone()));
+                current_string.clear();
+                index += 1
+            }
+            else {
+                current_string.push(c2)
+            }
+        }
+
+        current_string.clear();
+        index = 0;
+
+        // Constants
+        let mut string_mode = false;
+        let mut found_string = false;
+
+        loop {
+            let c2 = feed.next_char().unwrap();
+
+            if c2 == '"' {
+                string_mode = !string_mode;
+                found_string = true
+            }
+            else if (c2 == ',' || c2 == ';') && !string_mode {
+                if found_string {
+                    chunk.write_const(index, Str(Rc::new(current_string.clone())));
+                    current_string.clear();
+                    found_string = false
+                }
+                else {
+                    let int = str::parse::<i16>(current_string.as_str());
+                    let boolean = str::parse::<bool>(current_string.as_str());
+                    if int.is_ok() {
+                        chunk.write_const(index, Int16(int.unwrap()))
+                    }
+                    else if boolean.is_ok() {
+                        chunk.write_const(index, Bool(boolean.unwrap()))
+                    }
+                    else {
+                        //TODO: If there are no constants, this panics.
+                        panic!()
+                    }
+                }
+
+                if c2 == ';' { break }
+                current_string.clear();
+                index += 1
+            }
+            else { current_string.push(c2); }
+        }
+
+        // Instructions
+        current_string.clear();
+
+        loop {
+            let c2 = feed.next_char().unwrap();
+            if c2 == ')' { break }
+            current_string.push(c2)
+        }
+
+        match str::parse::<u16>(current_string.as_str()) {
+            Ok(count) => {
+                for _x in 0..count {
+                    let instruction = Instruction::from_feed(feed);
+                    chunk.write_instruction(instruction)
+                }
+
+                return chunk
+            },
+            Err(_) => panic!(),
         }
     }
 
@@ -466,14 +452,22 @@ impl Chunk {
 }
 
 pub enum Bytecode {
-    LoadedChunk(Chunk),
+    LoadedMain(Chunk),
     LoadedType(Type)
 }
 
 impl Bytecode {
-    fn from_bytes(bytes: Vec<u8>) -> () {
+    fn from_bytes(bytes: Vec<u8>) -> Vec<Chunk> {
         let mut feed = ByteFeed::new(bytes);
+        let mut bytecode_vec = vec![];
 
-        if feed.has_string("#main") { }
+        loop {
+            if feed.has_string("#main") {
+                let chunk = Chunk::from_bytes(&mut feed);
+                bytecode_vec.push(chunk)
+            }
+        }
+
+        return bytecode_vec
     }
 }
