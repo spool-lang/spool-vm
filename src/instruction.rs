@@ -6,8 +6,9 @@ use crate::instruction::Instruction::Call;
 use std::string::FromUtf8Error;
 use crate::instance::Instance::{Str, Int16, Bool};
 use std::num::ParseIntError;
-use crate::_type::Type;
+use crate::_type::{Type, TypeBuilder};
 use std::str::Utf8Error;
+use crate::instruction::Bytecode::{Main, Class};
 
 struct ByteFeed {
     vec: Vec<u8>,
@@ -136,7 +137,7 @@ impl ByteFeed {
 
     fn has_string(&mut self, string: &str) -> bool {
         let len = string.len();
-        let bytes = self.next_bytes(len);
+        let bytes = self.peek_bytes(len);
         let result = std::str::from_utf8(&bytes[..]);
 
         return match result {
@@ -309,104 +310,86 @@ impl Chunk {
         }
     }
 
-    pub fn from_bytes(bytes: Vec<u8>) -> Chunk {
-        let mut feed = ByteFeed::new(bytes);
-
+    fn from_bytes(feed: &mut ByteFeed) -> Chunk {
         let mut chunk = Chunk::new();
 
+        let mut current_string = "".to_string();
+        let mut index = 0;
+
+        //names
         loop {
-            match feed.next_char() {
-                None => {
-                    return chunk
-                },
-                Some(c) => {
-                    if c == '#' {
-                        let mut current_string = "".to_string();
-                        loop {
-                            let c2 = feed.next_char().unwrap();
-                            if c2 == '(' { break }
-                            current_string.push(c2)
-                        }
+            let c2 = feed.next_char().unwrap();
 
-                        current_string.clear();
-                        let mut index = 0;
-
-                        loop {
-                            let c2 = feed.next_char().unwrap();
-
-                            if c2 == ';' {
-                                chunk.write_name(index, Rc::from(current_string.clone()));
-                                current_string.clear();
-                                break
-                            }
-                            if c2 == ',' {
-                                chunk.write_name(index, Rc::from(current_string.clone()));
-                                current_string.clear();
-                                index += 1
-                            }
-                            else {
-                                current_string.push(c2)
-                            }
-                        }
-
-                        current_string.clear();
-                        index = 0;
-
-                        let mut string_mode = false;
-                        let mut found_string = false;
-                        loop {
-                            let c2 = feed.next_char().unwrap();
-
-                            if c2 == '"' {
-                                string_mode = !string_mode;
-                                found_string = true
-                            }
-                            else if (c2 == ',' || c2 == ';') && !string_mode {
-                                if found_string {
-                                    chunk.write_const(index, Str(Rc::new(current_string.clone())));
-                                    current_string.clear();
-                                    found_string = false
-                                }
-                                else {
-                                    let int = str::parse::<i16>(current_string.as_str());
-                                    let boolean = str::parse::<bool>(current_string.as_str());
-                                    if int.is_ok() {
-                                        chunk.write_const(index, Int16(int.unwrap()))
-                                    }
-                                    else if boolean.is_ok() {
-                                        chunk.write_const(index, Bool(boolean.unwrap()))
-                                    }
-                                    else {
-                                        //TODO: If there are no constants, this panics.
-                                        panic!()
-                                    }
-                                }
-
-                                if c2 == ';' { break }
-                                current_string.clear();
-                                index += 1
-                            }
-                            else { current_string.push(c2); }
-                        }
-
-                        current_string.clear();
-                        loop {
-                            let c2 = feed.next_char().unwrap();
-                            if c2 == ')' { break }
-                            current_string.push(c2)
-                        }
-                        match str::parse::<u16>(current_string.as_str()) {
-                            Ok(count) => {
-                                let instruction_bytes = feed.split(count);
-                                Instruction::from_bytes(instruction_bytes, chunk.instructions.as_mut());
-                                return chunk
-                            },
-                            Err(_) => panic!(),
-                        }
-                    }
-                    else { panic!() }
-                },
+            if c2 == ';' {
+                chunk.write_name(index, Rc::from(current_string.clone()));
+                current_string.clear();
+                break
             }
+            if c2 == ',' {
+                chunk.write_name(index, Rc::from(current_string.clone()));
+                current_string.clear();
+                index += 1
+            }
+            else {
+                current_string.push(c2)
+            }
+        }
+
+        current_string.clear();
+        index = 0;
+
+        // Constants
+        let mut string_mode = false;
+        let mut found_string = false;
+        loop {
+            let c2 = feed.next_char().unwrap();
+
+            if c2 == '"' {
+                string_mode = !string_mode;
+                found_string = true
+            }
+            else if (c2 == ',' || c2 == ';') && !string_mode {
+                if found_string {
+                    chunk.write_const(index, Str(Rc::new(current_string.clone())));
+                    current_string.clear();
+                    found_string = false
+                }
+                else {
+                    let int = str::parse::<i16>(current_string.as_str());
+                    let boolean = str::parse::<bool>(current_string.as_str());
+                    if int.is_ok() {
+                        chunk.write_const(index, Int16(int.unwrap()))
+                    }
+                    else if boolean.is_ok() {
+                        chunk.write_const(index, Bool(boolean.unwrap()))
+                    }
+                    else {
+                        //TODO: If there are no constants, this panics.
+                        panic!()
+                    }
+                }
+
+                if c2 == ';' { break }
+                current_string.clear();
+                index += 1
+            }
+            else { current_string.push(c2); }
+        }
+
+        // Chunk size
+        current_string.clear();
+        loop {
+            let c2 = feed.next_char().unwrap();
+            if c2 == ')' { break }
+            current_string.push(c2)
+        }
+        match str::parse::<u16>(current_string.as_str()) {
+            Ok(count) => {
+                let instruction_bytes = feed.split(count);
+                Instruction::from_bytes(instruction_bytes, chunk.instructions.as_mut());
+                return chunk
+            },
+            Err(_) => panic!("Unable to determine size of chunk!"),
         }
     }
 
@@ -466,14 +449,36 @@ impl Chunk {
 }
 
 pub enum Bytecode {
-    LoadedChunk(Chunk),
-    LoadedType(Type)
+    Main(Chunk),
+    Class(Type)
 }
 
 impl Bytecode {
-    fn from_bytes(bytes: Vec<u8>) -> () {
+    pub fn from_bytes(bytes: Vec<u8>) -> Vec<Bytecode> {
         let mut feed = ByteFeed::new(bytes);
+        let mut bytecode: Vec<Bytecode> = vec![];
 
-        if feed.has_string("#main") { }
+        loop {
+            if feed.has_string("#main(") {
+                let chunk = Chunk::from_bytes(&mut feed);
+                bytecode.push(Main(chunk))
+            }
+            else if feed.has_string("#class(") {
+                let class = Bytecode::class_from_bytes(&mut feed);
+                bytecode.push(Class(class))
+            }
+            else {
+                panic!("Unrecognized directive in bytecode file!")
+            }
+        }
+
+        return bytecode
+    }
+
+    fn class_from_bytes(feed: &mut ByteFeed) -> Type {
+
+
+        return TypeBuilder::new(Rc::from("".to_string()))
+            .build()
     }
 }

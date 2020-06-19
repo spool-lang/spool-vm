@@ -1,28 +1,29 @@
-use crate::_type::{TypeBuilder, TypeRegistry};
+use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
 use crate::string_pool::StringPool;
 use std::rc::Rc;
 use crate::instance::{Function, Instance};
 use crate::vm::{VM};
 use crate::instance::Instance::{Byte, UByte, Int16, UInt16, Int32, UInt32, Int64, UInt64, Int128, UInt128, Float32, Float64};
 use crate::instance::Function::NativeInstance;
+use std::cell::RefCell;
 
-pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-    let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Number"))
-        .supertype(type_registry.get(string_pool.pool_str("spool.core.Object")))
-        .instance_function(string_pool.pool_str("toByte"), 0, to_byte)
-        .instance_function(string_pool.pool_str("toUByte"), 0, to_ubyte)
-        .instance_function(string_pool.pool_str("toInt16"), 0, to_int16)
-        .instance_function(string_pool.pool_str("toUInt16"), 0, to_uint16)
-        .instance_function(string_pool.pool_str("toInt32"), 0, to_int32)
-        .instance_function(string_pool.pool_str("toUInt32"), 0, to_uint32)
-        .instance_function(string_pool.pool_str("toInt64"), 0, to_int64)
-        .instance_function(string_pool.pool_str("toUInt64"), 0, to_uint64)
-        .instance_function(string_pool.pool_str("toInt128"), 0, to_int128)
-        .instance_function(string_pool.pool_str("toUInt128"), 0, to_uint128)
-        .instance_function(string_pool.pool_str("toFloat32"), 0, to_float32)
-        .instance_function(string_pool.pool_str("toFloat64"), 0, to_float64)
+pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+    let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.Number"))
+        .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.Object")))
+        .instance_function(string_pool.borrow_mut().pool_str("toByte"), 0, to_byte)
+        .instance_function(string_pool.borrow_mut().pool_str("toUByte"), 0, to_ubyte)
+        .instance_function(string_pool.borrow_mut().pool_str("toInt16"), 0, to_int16)
+        .instance_function(string_pool.borrow_mut().pool_str("toUInt16"), 0, to_uint16)
+        .instance_function(string_pool.borrow_mut().pool_str("toInt32"), 0, to_int32)
+        .instance_function(string_pool.borrow_mut().pool_str("toUInt32"), 0, to_uint32)
+        .instance_function(string_pool.borrow_mut().pool_str("toInt64"), 0, to_int64)
+        .instance_function(string_pool.borrow_mut().pool_str("toUInt64"), 0, to_uint64)
+        .instance_function(string_pool.borrow_mut().pool_str("toInt128"), 0, to_int128)
+        .instance_function(string_pool.borrow_mut().pool_str("toUInt128"), 0, to_uint128)
+        .instance_function(string_pool.borrow_mut().pool_str("toFloat32"), 0, to_float32)
+        .instance_function(string_pool.borrow_mut().pool_str("toFloat64"), 0, to_float64)
         .build();
-    type_registry.register(_type)
+    type_registry.borrow_mut().register(_type)
 }
 
 fn to_byte(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
@@ -194,167 +195,179 @@ fn to_float64(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance 
 }
 
 pub(crate) mod byte {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Byte"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.Byte"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod ubyte {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.UByte"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.UByte"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod int16 {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Int16"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.Int16"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod uint16 {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.UInt16"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.UInt16"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod int32 {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Int32"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.Int32"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod uint32 {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.UInt32"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.UInt32"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod int64 {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Int64"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.Int64"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod uint64 {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.UInt64"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.UInt64"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod int128 {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Int128"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.Int128"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod uint128 {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.UInt128"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.UInt128"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod float32 {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Float32"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.Float32"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }
 
 pub(crate) mod float64 {
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     
     use std::rc::Rc;
+    use std::cell::RefCell;
 
-    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.number.Float64"))
-            .supertype(type_registry.get(Rc::new("spool.core.number.Number".to_string())))
+    pub(crate) fn create(string_pool: &mut Rc<RefCell<StringPool>>, type_registry: &mut Rc<RefCell<TypeRegistry>>) {
+        let _type = TypeBuilder::new(string_pool.borrow_mut().pool_str("spool.core.number.Float64"))
+            .supertype(TypeRef::new(Rc::clone(type_registry), string_pool.borrow_mut().pool_str("spool.core.number.Number")))
             .build();
-        type_registry.register(_type)
+        type_registry.borrow_mut().register(_type)
     }
 }

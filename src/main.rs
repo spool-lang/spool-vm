@@ -24,13 +24,13 @@ mod string_pool;
 mod _type;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    //let args: Vec<String> = env::args().collect();
 
-    let mut vm = VM::new();
-    let bytecode = load_bytecode("test.sbc");
-    let chunk = Chunk::from_bytes(bytecode);
+    //let mut vm = VM::new();
+    //let bytecode = load_bytecode("test.sbc");
+    //let chunk = Chunk::from_bytes(bytecode);
 
-    vm.run(chunk)
+    //vm.run(chunk)
 }
 
 fn load_bytecode(filename: &str) -> Vec<u8> {

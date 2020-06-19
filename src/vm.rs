@@ -11,12 +11,12 @@ use crate::instruction::{Chunk, Instruction};
 use crate::vm::InstructionResult::{GoTo, Next, ReturnVoid, ReturnValue};
 use crate::_type::{Type, TypeRegistry};
 
-type Mut<T> = Rc<RefCell<T>>;
-type MutVec<T> = Vec<Mut<T>>;
+pub type Mut<T> = Rc<RefCell<T>>;
+pub type MutVec<T> = Vec<Mut<T>>;
 
 pub struct VM {
     stack: Vec<Instance>,
-    type_stack: Vec<Rc<Type>>,
+    type_stack: Vec<Mut<Type>>,
     frame_stack: MutVec<NewCallFrame>,
     register: VMRegister,
     string_pool: StringPool,
@@ -24,9 +24,7 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new() -> VM {
-        let mut string_pool = StringPool::new();
-        let type_registry = TypeRegistry::new(&mut string_pool);
+    pub fn new(string_pool: StringPool, type_registry: TypeRegistry) -> VM {
         VM {
             stack: vec![],
             type_stack: vec![],
@@ -43,7 +41,7 @@ impl VM {
         self.execute();
     }
 
-    pub fn type_from_name(&self, name: &str) -> Rc<Type> {
+    pub fn type_from_name(&self, name: &str) -> Mut<Type> {
         self.type_registry.get(Rc::from(name.to_string()))
     }
 
@@ -164,14 +162,14 @@ impl VM {
 
     fn new_instance(&mut self, index: &u16) {
         let _type = self.pop_type_stack();
-        let ctor = _type.get_ctor(*index as usize);
+        let ctor = _type.borrow_mut().get_ctor(*index as usize);
         self.call_function(None, ctor);
     }
 
     fn instance_get(&mut self, index: u16) {
         let instance = self.pop_stack();
-        if let Object(_type, values) = instance {
-            let prop = _type.get_prop(index as usize);
+        if let Object(mut _type, values) = instance {
+            let prop = _type.borrow_mut().get_prop(index as usize);
             match values.borrow().get(prop.name.as_ref()) {
                 None => panic!(),
                 Some(value) => self.push_stack(value.clone())
@@ -184,12 +182,12 @@ impl VM {
     fn instance_set(&mut self, index: u16) {
         let instance = self.pop_stack();
         let value = self.pop_stack();
-        if let Object(_type, values) = instance {
-            let prop = _type.get_prop(index as usize);
+        if let Object(mut _type, values) = instance {
+            let prop = _type.borrow_mut().get_prop(index as usize);
             let value_type = self.type_registry.get(value.get_canonical_name());
             let prop_type = self.type_registry.get(prop._type.clone());
 
-            if prop.writable && values.borrow().contains_key(prop.name.as_ref()) && prop_type.matches_type(value_type) {
+            if prop.writable && values.borrow().contains_key(prop.name.as_ref()) && prop_type.borrow_mut().matches_type(value_type) {
                 values.borrow_mut().insert(prop.name.clone(), value);
                 return;
             }
@@ -423,7 +421,7 @@ impl VM {
         let instance_type = self.type_registry.get(instance.get_canonical_name());
         let comparison_type = self.pop_type_stack();
 
-        let result = comparison_type.matches_type(instance_type);
+        let result = comparison_type.borrow_mut().matches_type(instance_type);
         self.push_stack(Bool(result))
     }
 
@@ -504,10 +502,10 @@ impl VM {
 
     fn call_instance(&mut self, name_index: u16) {
         let instance = self.pop_stack();
-        let instance_type = self.type_registry.get(instance.get_canonical_name());
+        let mut instance_type = self.type_registry.get(instance.get_canonical_name());
         let name = self.get_call_frame().borrow().chunk.get_name(name_index);
 
-        self.call_function(Some(instance), instance_type.get_instance_func(name));
+        self.call_function(Some(instance), instance_type.borrow_mut().get_instance_func(name));
     }
 
     fn call_function(&mut self, op_instance: Option<Instance>, function: Function) {
@@ -619,11 +617,11 @@ impl VM {
         }
     }
 
-    fn push_type_stack(&mut self, _type: Rc<Type>) {
+    fn push_type_stack(&mut self, _type: Mut<Type>) {
         self.type_stack.push(_type)
     }
 
-    fn pop_type_stack(&mut self) -> Rc<Type> {
+    fn pop_type_stack(&mut self) -> Mut<Type> {
         let size = self.get_call_frame().borrow().type_stack_size;
         let true_size = self.type_stack.len();
         if true_size <= size { panic!("Attempted to pop an empty type stack!") }
