@@ -3,7 +3,8 @@ use crate::instance::{Function, Instance};
 use crate::instance::Function::{NativeInstance, Native};
 use std::collections::HashMap;
 use crate::string_pool::StringPool;
-use crate::vm::VM;
+use crate::vm::{VM, Mut};
+use std::cell::RefCell;
 
 pub(crate) mod number;
 
@@ -28,7 +29,7 @@ impl Property {
 #[derive(Debug)]
 pub struct Type {
     pub(crate) canonical_name: Rc<String>,
-    supertype: Option<Rc<Type>>,
+    supertype: Option<TypeRef>,
     ctors: Vec<Function>,
     ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
@@ -36,7 +37,7 @@ pub struct Type {
 }
 
 impl Type {
-    pub fn new(canonical_name: Rc<String>, supertype: Option<Rc<Type>>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>, props: Vec<Rc<Property>>) -> Type {
+    pub fn new(canonical_name: Rc<String>, supertype: Option<TypeRef>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>, props: Vec<Rc<Property>>) -> Type {
         Type {
             canonical_name,
             supertype,
@@ -47,21 +48,33 @@ impl Type {
         }
     }
 
+    pub(crate) fn resolve_supertypes(&mut self, registry: &mut TypeRegistry) {
+        match &mut self.supertype {
+            None => {},
+            Some(supertype_ref) => {
+                if !supertype_ref.is_cached() {
+                    supertype_ref.cache(registry)
+                }
+            },
+        }
+    }
+
     pub fn get_canonical_name(&self) -> Rc<String> {
         let mut actual_name = format!("{}", self.canonical_name);
         Rc::new(actual_name)
     }
 
-    pub(crate) fn matches_type(&self, other: Rc<Type>) -> bool {
+    pub(crate) fn matches_type(&self, other: Mut<Type>) -> bool {
         let mut other = other;
 
         loop {
-            if &*self.canonical_name == &*other.canonical_name {
+            if &*self.canonical_name == &*other.borrow().canonical_name {
                 return true
             }
-            match &other.supertype {
-                None => return false,
-                Some(thing) => other = Rc::clone(thing),
+
+            return match &other.borrow().supertype {
+                None => false,
+                Some(supertype_ref) => supertype_ref.get().borrow().matches_type(other.clone())
             }
         }
     }
@@ -70,10 +83,10 @@ impl Type {
         if !self.ctorable { panic!() }
         match self.ctors.get(index) {
             None => {
-                let sup_op = self.supertype.clone();
-                match sup_op {
+                let mut sup_op = self.supertype.clone();
+                match &mut sup_op {
                     None => panic!(),
-                    Some(supertype) => supertype.get_ctor(index),
+                    Some(supertype_ref) => supertype_ref.get().borrow().get_ctor(index)
                 }
             },
             Some(ctor) => ctor.clone(),
@@ -85,7 +98,7 @@ impl Type {
         return match self.instance_functions.get(&*name.clone()) {
             None => match sup_op {
                 None => panic!(),
-                Some(sup) => sup.get_instance_func(name),
+                Some(supertype_ref) => supertype_ref.get().borrow().get_instance_func(name),
             },
             Some(thing) => thing.clone(),
         }
@@ -98,7 +111,7 @@ impl Type {
                 let sup_op = self.supertype.clone();
                 match sup_op {
                     None => panic!(),
-                    Some(supertype) => supertype.get_prop(index),
+                    Some(supertype) => supertype.get().borrow().get_prop(index),
                 }
             },
             Some(prop) => Rc::clone(prop),
@@ -106,13 +119,21 @@ impl Type {
     }
 }
 
+#[derive(Debug)]
 pub struct TypeRef {
     name: Rc<String>,
-    cached: Option<Rc<Type>>
+    cached: Option<Mut<Type>>
 }
 
 impl TypeRef {
-    fn get(&self) -> Rc<Type> {
+    fn new(name: Rc<String>) -> TypeRef {
+        TypeRef {
+            name,
+            cached: None
+        }
+    }
+
+    fn get(&self) -> Mut<Type> {
         match &self.cached {
             None => panic!(),
             Some(_type) => Rc::clone(_type),
@@ -129,9 +150,24 @@ impl TypeRef {
     }
 }
 
+impl Clone for TypeRef {
+    fn clone(&self) -> Self {
+        let name = Rc::clone(&self.name);
+        let cached = match &self.cached {
+            None => None,
+            Some(_type) => Some(Rc::clone(_type)),
+        };
+
+        TypeRef {
+            name,
+            cached
+        }
+    }
+}
+
 struct TypeBuilder {
     canonical_name: Rc<String>,
-    supertype: Option<Rc<Type>>,
+    supertype: Option<TypeRef>,
     ctors: Vec<Function>,
     ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
@@ -150,7 +186,7 @@ impl TypeBuilder {
         }
     }
 
-    fn supertype(mut self, supertype: Rc<Type>) -> TypeBuilder {
+    fn supertype(mut self, supertype: TypeRef) -> TypeBuilder {
         self.supertype = Some(supertype);
         return self
     }
@@ -182,7 +218,7 @@ impl TypeBuilder {
 }
 
 pub(crate) struct TypeRegistry {
-    types: HashMap<Rc<String>, Rc<Type>>
+    types: HashMap<Rc<String>, Mut<Type>>
 }
 
 impl TypeRegistry {
@@ -217,10 +253,28 @@ impl TypeRegistry {
 
     pub(crate) fn register(&mut self, _type: Type) {
         let name = Rc::clone(&_type.canonical_name);
-        self.types.insert(name, Rc::from(_type));
+        self.types.insert(name, Rc::from(RefCell::from(_type)));
     }
 
-    pub(crate) fn get(&self, name: Rc<String>) -> Rc<Type> {
+    pub(crate) fn resolve_supertypes(&mut self) {
+        let mut iterator = self.types.iter();
+        let mut to_resolve: Vec<Mut<Type>> = vec![];
+
+        loop {
+            match &mut iterator.next() {
+                None => break,
+                Some((key, value)) => {
+                    to_resolve.push(Rc::clone(value))
+                }
+            }
+        }
+
+        for _type in to_resolve.iter() {
+            _type.borrow_mut().resolve_supertypes(self)
+        }
+    }
+
+    pub(crate) fn get(&self, name: Rc<String>) -> Mut<Type> {
         match self.types.get(&name) {
             None => panic!("Type {} does not exist.", name),
             Some(_type) => Rc::clone(_type),
@@ -258,12 +312,12 @@ pub(crate) mod object_type {
 pub(crate) mod boolean_type {
     use crate::string_pool::StringPool;
     
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Boolean"))
-            .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
+            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
             .build();
         type_registry.register(_type)
     }
@@ -272,12 +326,12 @@ pub(crate) mod boolean_type {
 pub(crate) mod char_type {
     use crate::string_pool::StringPool;
     
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Char"))
-            .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
+            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
             .build();
         type_registry.register(_type)
     }
@@ -287,13 +341,13 @@ pub(crate) mod string_type {
     use crate::vm::{VM};
     use crate::instance::{Instance, Function};
     use crate::instance::Instance::{Str, Void};
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use crate::string_pool::StringPool;
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.String"))
-            .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
+            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
             .instance_function(string_pool.pool_str("capitalize"), 0, capitalize)
             .build();
         type_registry.register(_type)
@@ -311,12 +365,12 @@ pub(crate) mod string_type {
 pub(crate) mod array_type {
     use crate::string_pool::StringPool;
     
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Array"))
-            .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
+            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
             .build();
         type_registry.register(_type)
     }
@@ -325,12 +379,12 @@ pub(crate) mod array_type {
 pub(crate) mod func_type {
     use crate::string_pool::StringPool;
     
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Func"))
-            .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
+            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
             .build();
         type_registry.register(_type)
     }
@@ -339,12 +393,12 @@ pub(crate) mod func_type {
 pub(crate) mod void_type {
     use crate::string_pool::StringPool;
     
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Void"))
-            .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
+            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
             .build();
         type_registry.register(_type)
     }
@@ -352,7 +406,7 @@ pub(crate) mod void_type {
 
 pub(crate) mod console_type {
     use crate::string_pool::StringPool;
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use std::rc::Rc;
     use crate::vm::VM;
     use crate::instance::Instance;
@@ -362,7 +416,7 @@ pub(crate) mod console_type {
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Console"))
-            .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
+            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
             .ctor(0, ctor)
             .instance_function(string_pool.pool_str("println"), 1, println)
             .instance_function(string_pool.pool_str("print"), 1, print)
@@ -396,7 +450,7 @@ pub(crate) mod console_type {
 
 pub(crate) mod random_type {
     use crate::string_pool::StringPool;
-    use crate::_type::{TypeBuilder, TypeRegistry};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
     use std::rc::Rc;
     use crate::vm::VM;
     use crate::instance::Instance;
@@ -408,7 +462,7 @@ pub(crate) mod random_type {
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Random"))
-            .supertype(type_registry.get(Rc::new("spool.core.Object".to_string())))
+            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
             .ctor(0, ctor)
             .instance_function(string_pool.pool_str("nextInt16"), 2, next_int16)
             .build();

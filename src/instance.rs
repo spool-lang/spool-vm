@@ -3,7 +3,7 @@ use crate::instruction::Chunk;
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter, Error, Debug};
 use std::fmt;
-use crate::vm::{VM};
+use crate::vm::{VM, Mut};
 use crate::_type::Type;
 use std::collections::HashMap;
 use rand::prelude::ThreadRng;
@@ -13,7 +13,7 @@ use rand::prelude::ThreadRng;
 pub enum Instance {
     // Represents both instances of the builtin object type & instances
     // of non-builtin subtypes.
-    Object(Rc<Type>, Rc<RefCell<HashMap<Rc<String>, Instance>>>),
+    Object(Mut<Type>, Rc<RefCell<HashMap<Rc<String>, Instance>>>),
     Random(Box<ThreadRng>),
     Bool(bool),
     Byte(i8),
@@ -46,7 +46,7 @@ pub enum Instance {
     //Complex(),
     Char(char),
     Str(Rc<String>),
-    Array(Box<[Instance]>, Rc<Type>),
+    Array(Box<[Instance]>, Mut<Type>),
     //Represents a class object.
     //Class(Box<Class>)
     //Represents a function.
@@ -56,31 +56,38 @@ pub enum Instance {
 
 impl Instance {
     pub fn get_canonical_name(&self) -> Rc<String> {
-        Rc::new(
-            match self {
-                Instance::Object(_type, _) => _type.canonical_name.as_str(),
-                Instance::Random(_) => "spool.core.Random",
-                Instance::Bool(_) => "spool.core.Boolean",
-                Instance::Byte(_) => "spool.core.number.Byte",
-                Instance::UByte(_) => "spool.core.number.UByte",
-                Instance::Int16(_) => "spool.core.number.Int16",
-                Instance::UInt16(_) => "spool.core.number.UInt16",
-                Instance::Int32(_) => "spool.core.number.Int32",
-                Instance::UInt32(_) => "spool.core.number.UInt32",
-                Instance::Int64(_) => "spool.core.number.Int64",
-                Instance::UInt64(_) => "spool.core.number.UInt64",
-                Instance::Int128(_) => "spool.core.number.Int128",
-                Instance::UInt128(_) => "spool.core.number.UInt128",
-                Instance::Float32(_) => "spool.core.number.Float32",
-                Instance::Float64(_) => "spool.core.number.Float64",
-                Instance::Char(_) => "spool.core.Char",
-                Instance::Str(_) => "spool.core.String",
-                Instance::Array(_, _) => "spool.core.Array",
-                Instance::Func(_) => "spool.core.Func",
-                Instance::Void => "spool.core.Void",
-                _ => ""
-            }.to_string()
-        )
+        let _ref;
+        let name;
+
+        let string = match &self {
+            Instance::Object(_type, _) => {
+                _ref = _type.borrow();
+                name = _ref.canonical_name.clone();
+                name.as_str()
+            },
+            Instance::Random(_) => "spool.core.Random",
+            Instance::Bool(_) => "spool.core.Boolean",
+            Instance::Byte(_) => "spool.core.number.Byte",
+            Instance::UByte(_) => "spool.core.number.UByte",
+            Instance::Int16(_) => "spool.core.number.Int16",
+            Instance::UInt16(_) => "spool.core.number.UInt16",
+            Instance::Int32(_) => "spool.core.number.Int32",
+            Instance::UInt32(_) => "spool.core.number.UInt32",
+            Instance::Int64(_) => "spool.core.number.Int64",
+            Instance::UInt64(_) => "spool.core.number.UInt64",
+            Instance::Int128(_) => "spool.core.number.Int128",
+            Instance::UInt128(_) => "spool.core.number.UInt128",
+            Instance::Float32(_) => "spool.core.number.Float32",
+            Instance::Float64(_) => "spool.core.number.Float64",
+            Instance::Char(_) => "spool.core.Char",
+            Instance::Str(_) => "spool.core.String",
+            Instance::Array(_, _) => "spool.core.Array",
+            Instance::Func(_) => "spool.core.Func",
+            Instance::Void => "spool.core.Void",
+            _ => ""
+        }.to_string();
+
+        Rc::new(string)
     }
 }
 
@@ -105,7 +112,7 @@ impl Display for Instance {
             Instance::Char(character) => write!(f, "'{}'", character),
             Instance::Str(string) => write!(f, "\"{}\"", string),
             Instance::Array(array, _type) => {
-                let mut array_string = format!("{}[", _type.get_canonical_name());
+                let mut array_string = format!("{}[", _type.borrow().get_canonical_name());
 
                 for i in 0..array.len() {
                     let instance = array.get(i).unwrap();
