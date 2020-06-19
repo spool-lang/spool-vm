@@ -464,13 +464,15 @@ impl Chunk {
     }
 }
 
-pub enum LoadedBytecode {
-    ByChunk(Chunk),
-    ByType(Type)
+pub enum Bytecode {
+    LoadedChunk(Chunk),
+    LoadedType(Type)
 }
 
-impl LoadedBytecode {
+impl Bytecode {
     fn from_bytes(bytes: Vec<u8>) -> () {
         let mut feed = ByteFeed::new(bytes);
+
+        if feed.has_string("#main") { }
     }
 }
