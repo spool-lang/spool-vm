@@ -24,8 +24,7 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new() -> VM {
-        let mut string_pool = StringPool::new();
+    pub fn new(mut string_pool: StringPool) -> VM {
         let type_registry = TypeRegistry::new(&mut string_pool);
         VM {
             stack: vec![],
