@@ -106,6 +106,29 @@ impl Type {
     }
 }
 
+pub struct TypeRef {
+    name: Rc<String>,
+    cached: Option<Rc<Type>>
+}
+
+impl TypeRef {
+    fn get(&self) -> Rc<Type> {
+        match &self.cached {
+            None => panic!(),
+            Some(_type) => Rc::clone(_type),
+        }
+    }
+
+    fn cache(&mut self, registry: &TypeRegistry) {
+        let name = Rc::clone(&self.name);
+        self.cached = Some(registry.get(name));
+    }
+
+    fn is_cached(&self) -> bool {
+        return self.cached.is_some()
+    }
+}
+
 struct TypeBuilder {
     canonical_name: Rc<String>,
     supertype: Option<Rc<Type>>,
