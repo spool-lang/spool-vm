@@ -80,26 +80,6 @@ impl Type {
                 },
             }
         }
-
-   /*
-        for (name, instance_function) in self.instance_functions {
-            match instance_function {
-                Function::Standard(params, _) => {
-                    for mut param in params {
-                        param.cache(registry)
-                    }
-                },
-                Function::Instance(mut self_type, mut params, _) => {
-                    self_type.cache(registry);
-
-                    for mut param in params {
-                        param.cache(registry)
-                    }
-                },
-                _ => {}
-            }
-        }
-    */
     }
 
     pub fn get_canonical_name(&self) -> Rc<String> {
