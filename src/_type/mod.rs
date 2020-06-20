@@ -148,17 +148,13 @@ impl Type {
         }
     }
 
-    pub(crate) fn get_prop(&self, index: usize) -> Rc<Property> {
-        panic!("This method is still used somewhere!")
-    }
-
-    pub(crate) fn get_prop_by_name(&self, name: Rc<String>) -> Mut<Property> {
+    pub(crate) fn get_property(&self, name: Rc<String>) -> Mut<Property> {
         match self.prop_map.get(&name) {
             None => {
                 let sup_op = self.supertype.clone();
                 match sup_op {
                     None => panic!(),
-                    Some(supertype) => supertype.get().borrow().get_prop_by_name(Rc::clone(&name)),
+                    Some(supertype) => supertype.get().borrow().get_property(Rc::clone(&name)),
                 }
             },
             Some(prop) => Rc::clone(&prop),

@@ -625,5 +625,6 @@ fn load_function(feed: &mut ByteFeed, instance_name: Option<Rc<String>>, string_
 fn test_ctor(vm: &mut VM, args: Vec<Instance>, canonical_name: Rc<String>) -> Instance {
     let _type = vm.type_from_name(canonical_name.as_str());
     let mut values = HashMap::new();
+    values.insert(vm.pool_string("funny"), Bool(false));
     return Object(_type, Rc::new(RefCell::new(values)));
 }

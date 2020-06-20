@@ -168,12 +168,15 @@ impl VM {
         self.call_function(None, ctor);
     }
 
-    fn new_instance_get(&mut self, index: u16) {
+    fn instance_get(&mut self, index: u16) {
         let instance = self.pop_stack();
         let chunk = Rc::clone(&self.get_call_frame().borrow().chunk);
         let prop_name = chunk.get_name(index);
 
         if let Object(_type, values) = instance {
+
+            println!("Values: {:?}", values.borrow());
+
             match values.borrow().get(prop_name.as_ref()) {
                 None => panic!(),
                 Some(value) => self.push_stack(value.clone()),
@@ -181,46 +184,18 @@ impl VM {
         }
     }
 
-    fn instance_get(&mut self, index: u16) {
-        let instance = self.pop_stack();
-        if let Object(_type, values) = instance {
-            let prop = _type.borrow().get_prop(index as usize);
-            match values.borrow().get(prop.name.as_ref()) {
-                None => panic!(),
-                Some(value) => self.push_stack(value.clone())
-            }
-            return;
-        }
-        panic!()
-    }
-
-    fn new_instance_set(&mut self, index: u16) {
+    fn instance_set(&mut self, index: u16) {
         let instance = self.pop_stack();
         let value = self.pop_stack();
         let chunk = Rc::clone(&self.get_call_frame().borrow().chunk);
         let prop_name = chunk.get_name(index);
 
         if let Object(_type, values) = instance {
-            let prop = _type.borrow().get_prop_by_name(prop_name.clone());
+            let prop = _type.borrow().get_property(prop_name.clone());
             let value_type = self.type_registry.get(prop.borrow()._type.clone());
 
             if prop.borrow().writable && prop.borrow().type_ref.get().borrow().matches_type(value_type) {
                 values.borrow_mut().insert(prop_name.clone(), value);
-            }
-        }
-    }
-
-    fn instance_set(&mut self, index: u16) {
-        let instance = self.pop_stack();
-        let value = self.pop_stack();
-        if let Object(_type, values) = instance {
-            let prop = _type.borrow().get_prop(index as usize);
-            let value_type = self.type_registry.get(value.get_canonical_name());
-            let prop_type = self.type_registry.get(prop._type.clone());
-
-            if prop.writable && values.borrow().contains_key(prop.name.as_ref()) && prop_type.borrow().matches_type(value_type) {
-                values.borrow_mut().insert(prop.name.clone(), value);
-                return;
             }
         }
         panic!()
