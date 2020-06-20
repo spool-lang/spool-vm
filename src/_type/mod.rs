@@ -4,7 +4,7 @@ use crate::instance::Function::{NativeInstance, Native, TestConstructor};
 use std::collections::HashMap;
 use crate::string_pool::StringPool;
 use crate::vm::{VM, Mut};
-use std::cell::RefCell;
+use std::cell::{RefCell, Ref};
 
 pub(crate) mod number;
 
@@ -13,15 +13,23 @@ pub(crate) mod number;
 pub struct Property {
     pub(crate) name: Rc<String>,
     pub(crate) writable: bool,
-    pub(crate) _type: Rc<String>
+    pub(crate) _type: Rc<String>,
+    pub(crate) type_ref: TypeRef
 }
 
 impl Property {
-    fn new(name: Rc<String>, writable: bool, _type: Rc<String>) -> Property {
+    fn new(name: Rc<String>, writable: bool, type_name: Rc<String>) -> Property {
         Property {
             name,
             writable,
-            _type
+            _type: Rc::clone(&type_name),
+            type_ref: TypeRef::new(Rc::clone(&type_name))
+        }
+    }
+
+    fn resolve_type(&mut self, registry: &TypeRegistry) {
+        if !self.type_ref.is_resolved() {
+            self.type_ref.resolve_type(registry)
         }
     }
 }
@@ -33,18 +41,20 @@ pub struct Type {
     ctors: Vec<Function>,
     ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
+    prop_map: HashMap<Rc<String>, Mut<Property>>,
     props: Vec<Rc<Property>>
 }
 
 impl Type {
-    pub(crate) fn new(canonical_name: Rc<String>, supertype: Option<TypeRef>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>, props: Vec<Rc<Property>>) -> Type {
+    pub(crate) fn new(canonical_name: Rc<String>, supertype: Option<TypeRef>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>, prop_map: HashMap<Rc<String>, Mut<Property>>) -> Type {
         Type {
             canonical_name,
             supertype,
             ctors,
             ctorable,
             instance_functions,
-            props
+            prop_map,
+            props: vec![]
         }
     }
 
@@ -52,31 +62,42 @@ impl Type {
         match &mut self.supertype {
             None => {},
             Some(supertype_ref) => {
-                if !supertype_ref.is_cached() {
-                    supertype_ref.cache(registry)
+                if !supertype_ref.is_resolved() {
+                    supertype_ref.resolve_type(registry)
                 }
             },
         }
 
-        let mut iter = self.instance_functions.iter_mut();
+        let mut function_iter = self.instance_functions.iter_mut();
 
         loop {
-            match &mut iter.next() {
+            match &mut function_iter.next() {
                 None => break,
                 Some((name, instance_function)) => match instance_function {
                     Function::Standard(params, _) => {
                         for mut param in params {
-                            param.cache(registry)
+                            param.resolve_type(registry)
                         }
                     },
                     Function::Instance(self_type, params, _) => {
-                        self_type.cache(registry);
+                        self_type.resolve_type(registry);
 
                         for mut param in params {
-                            param.cache(registry)
+                            param.resolve_type(registry)
                         }
                     },
                     _ => {}
+                },
+            }
+        }
+
+        let mut prop_iter = self.prop_map.iter_mut();
+
+        loop {
+            match &mut prop_iter.next() {
+                None => break,
+                Some((name, prop)) => {
+                    prop.borrow_mut().resolve_type(registry)
                 },
             }
         }
@@ -128,16 +149,19 @@ impl Type {
     }
 
     pub(crate) fn get_prop(&self, index: usize) -> Rc<Property> {
-        if !self.ctorable { panic!() }
-        match self.props.get(index) {
+        panic!("This method is still used somewhere!")
+    }
+
+    pub(crate) fn get_prop_by_name(&self, name: Rc<String>) -> Mut<Property> {
+        match self.prop_map.get(&name) {
             None => {
                 let sup_op = self.supertype.clone();
                 match sup_op {
                     None => panic!(),
-                    Some(supertype) => supertype.get().borrow().get_prop(index),
+                    Some(supertype) => supertype.get().borrow().get_prop_by_name(Rc::clone(&name)),
                 }
             },
-            Some(prop) => Rc::clone(prop),
+            Some(prop) => Rc::clone(&prop),
         }
     }
 }
@@ -145,45 +169,45 @@ impl Type {
 #[derive(Debug)]
 pub(crate) struct TypeRef {
     name: Rc<String>,
-    cached: Option<Mut<Type>>
+    _type: Option<Mut<Type>>
 }
 
 impl TypeRef {
     pub(crate) fn new(name: Rc<String>) -> TypeRef {
         TypeRef {
             name,
-            cached: None
+            _type: None
         }
     }
 
     pub(crate) fn get(&self) -> Mut<Type> {
-        match &self.cached {
+        match &self._type {
             None => panic!(),
             Some(_type) => Rc::clone(_type),
         }
     }
 
-    fn cache(&mut self, registry: &TypeRegistry) {
+    fn resolve_type(&mut self, registry: &TypeRegistry) {
         let name = Rc::clone(&self.name);
-        self.cached = Some(registry.get(name));
+        self._type = Some(registry.get(name));
     }
 
-    fn is_cached(&self) -> bool {
-        return self.cached.is_some()
+    fn is_resolved(&self) -> bool {
+        return self._type.is_some()
     }
 }
 
 impl Clone for TypeRef {
     fn clone(&self) -> Self {
         let name = Rc::clone(&self.name);
-        let cached = match &self.cached {
+        let _type = match &self._type {
             None => None,
             Some(_type) => Some(Rc::clone(_type)),
         };
 
         TypeRef {
             name,
-            cached
+            _type
         }
     }
 }
@@ -194,6 +218,7 @@ pub(crate) struct TypeBuilder {
     ctors: Vec<Function>,
     ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
+    prop_map: HashMap<Rc<String>, Rc<RefCell<Property>>>,
     props: Vec<Rc<Property>>
 }
 
@@ -205,6 +230,7 @@ impl TypeBuilder {
             ctors: vec![],
             ctorable: false,
             instance_functions: Default::default(),
+            prop_map: Default::default(),
             props: vec![]
         }
     }
@@ -243,12 +269,12 @@ impl TypeBuilder {
     }
 
     pub(crate) fn prop(mut self, prop: Property) -> TypeBuilder {
-        self.props.push(Rc::new(prop));
+        self.prop_map.insert(Rc::clone(&prop.name), Rc::new(RefCell::new(prop)));
         self
     }
 
     pub(crate) fn build(self) -> Type {
-        Type::new(self.canonical_name, self.supertype, self.ctors, self.ctorable, self.instance_functions, self.props)
+        Type::new(self.canonical_name, self.supertype, self.ctors, self.ctorable, self.instance_functions, self.prop_map)
     }
 }
 

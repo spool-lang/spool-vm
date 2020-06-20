@@ -17,7 +17,7 @@ type MutVec<T> = Vec<Mut<T>>;
 pub struct VM {
     stack: Vec<Instance>,
     type_stack: MutVec<Type>,
-    frame_stack: MutVec<NewCallFrame>,
+    frame_stack: MutVec<CallFrame>,
     register: VMRegister,
     string_pool: StringPool,
     type_registry: TypeRegistry
@@ -38,7 +38,7 @@ impl VM {
     pub(crate) fn run(&mut self, chunk: Rc<Chunk>) {
         self.type_registry.resolve_supertypes();
 
-        let frame = NewCallFrame::new(chunk);
+        let frame = CallFrame::new(chunk);
         self.push_call_frame(frame);
         self.execute();
     }
@@ -51,11 +51,11 @@ impl VM {
         self.string_pool.pool_string(string.to_string())
     }
 
-    fn push_call_frame(&mut self, frame: NewCallFrame) {
+    fn push_call_frame(&mut self, frame: CallFrame) {
         &self.frame_stack.push(Rc::new(RefCell::new(frame)));
     }
 
-    fn get_call_frame(&self) -> Mut<NewCallFrame> {
+    fn get_call_frame(&self) -> Mut<CallFrame> {
         let index = self.frame_stack.len();
         let option = self.frame_stack.get(index - 1);
         match option {
@@ -168,6 +168,19 @@ impl VM {
         self.call_function(None, ctor);
     }
 
+    fn new_instance_get(&mut self, index: u16) {
+        let instance = self.pop_stack();
+        let chunk = Rc::clone(&self.get_call_frame().borrow().chunk);
+        let prop_name = chunk.get_name(index);
+
+        if let Object(_type, values) = instance {
+            match values.borrow().get(prop_name.as_ref()) {
+                None => panic!(),
+                Some(value) => self.push_stack(value.clone()),
+            }
+        }
+    }
+
     fn instance_get(&mut self, index: u16) {
         let instance = self.pop_stack();
         if let Object(_type, values) = instance {
@@ -179,6 +192,22 @@ impl VM {
             return;
         }
         panic!()
+    }
+
+    fn new_instance_set(&mut self, index: u16) {
+        let instance = self.pop_stack();
+        let value = self.pop_stack();
+        let chunk = Rc::clone(&self.get_call_frame().borrow().chunk);
+        let prop_name = chunk.get_name(index);
+
+        if let Object(_type, values) = instance {
+            let prop = _type.borrow().get_prop_by_name(prop_name.clone());
+            let value_type = self.type_registry.get(prop.borrow()._type.clone());
+
+            if prop.borrow().writable && prop.borrow().type_ref.get().borrow().matches_type(value_type) {
+                values.borrow_mut().insert(prop_name.clone(), value);
+            }
+        }
     }
 
     fn instance_set(&mut self, index: u16) {
@@ -529,7 +558,7 @@ impl VM {
                 for arg in args {
                     self.register.declare(arg, &false)
                 }
-                let frame = NewCallFrame::new_inner(chunk.clone(), stack_size, type_stack_size, register_size);
+                let frame = CallFrame::new_inner(chunk.clone(), stack_size, type_stack_size, register_size);
                 self.push_call_frame(frame);
                 let returned = self.execute();
 
@@ -565,7 +594,7 @@ impl VM {
                 for arg in args {
                     self.register.declare(arg, &false)
                 }
-                let frame = NewCallFrame::new_inner(chunk.clone(), stack_size, type_stack_size, register_size);
+                let frame = CallFrame::new_inner(chunk.clone(), stack_size, type_stack_size, register_size);
                 self.push_call_frame(frame);
                 let returned = self.execute();
 
@@ -681,7 +710,7 @@ impl VM {
     }
 }
 
-struct NewCallFrame {
+struct CallFrame {
     chunk: Rc<Chunk>,
     pc: usize,
     stack_size: usize,
@@ -689,9 +718,9 @@ struct NewCallFrame {
     register_size: u16
 }
 
-impl NewCallFrame {
-    fn new(chunk: Rc<Chunk>) -> NewCallFrame {
-        NewCallFrame {
+impl CallFrame {
+    fn new(chunk: Rc<Chunk>) -> CallFrame {
+        CallFrame {
             chunk,
             pc: 0,
             stack_size: 0,
@@ -700,8 +729,8 @@ impl NewCallFrame {
         }
     }
 
-    fn new_inner(chunk: Rc<Chunk>, stack_size: usize, type_stack_size: usize, register_size: u16) -> NewCallFrame {
-        NewCallFrame {
+    fn new_inner(chunk: Rc<Chunk>, stack_size: usize, type_stack_size: usize, register_size: u16) -> CallFrame {
+        CallFrame {
             chunk,
             pc: 0,
             stack_size,
