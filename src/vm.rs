@@ -196,6 +196,7 @@ impl VM {
 
             if prop.borrow().writable && prop.borrow().type_ref.get().borrow().matches_type(value_type) {
                 values.borrow_mut().insert(prop_name.clone(), value);
+                return;
             }
         }
         panic!()
