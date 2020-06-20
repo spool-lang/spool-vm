@@ -4,13 +4,13 @@ use std::cell::RefCell;
 use std::fmt::{Display, Formatter, Error, Debug};
 use std::fmt;
 use crate::vm::{VM, Mut};
-use crate::_type::Type;
+use crate::_type::{Type, TypeRef};
 use std::collections::HashMap;
 use rand::prelude::ThreadRng;
 
 // Represents instances created at runtime
 #[derive(Clone, Debug)]
-pub enum Instance {
+pub(crate) enum Instance {
     // Represents both instances of the builtin object type & instances
     // of non-builtin subtypes.
     Object(Mut<Type>, Rc<RefCell<HashMap<Rc<String>, Instance>>>),
@@ -132,8 +132,9 @@ impl Display for Instance {
 }
 
 #[derive(Clone)]
-pub enum Function {
-    Standard(Vec<Rc<Type>>, Rc<Chunk>),
+pub(crate) enum Function {
+    Standard(Vec<TypeRef>, Rc<Chunk>),
+    Instance(TypeRef, Vec<TypeRef>, Rc<Chunk>),
     Native(u8, fn(&mut VM, Vec<Instance>) -> Instance),
     NativeInstance(u8, fn(&mut VM, Instance, Vec<Instance>) -> Instance),
     TestConstructor(u8, Rc<String>, fn(&mut VM, Vec<Instance>, Rc<String>) -> Instance)
@@ -143,6 +144,7 @@ impl Debug for Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         return match self {
             Function::Standard(_, _) => write!(f, "{:?}", "function"),
+            Function::Instance(_,_,_) => write!(f, "{:?}", "function"),
             Function::Native(_, _) => write!(f, "{:?}", "native_function"),
             Function::NativeInstance(_, _) => write!(f, "{:?}", "native_function"),
             Function::TestConstructor(_, _, _) => write!(f, "{:?}", "native_function")

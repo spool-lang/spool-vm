@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::instance::Instance;
+use crate::instance::{Instance, Function};
 use std::rc::Rc;
 use std::slice::Iter;
 use crate::instruction::Instruction::Call;
@@ -318,7 +318,7 @@ impl Instruction {
 }
 
 #[derive(Debug)]
-pub struct Chunk {
+pub(crate) struct Chunk {
     pub instructions: Vec<Instruction>,
     pub is_locked: bool,
     pub jump_table: HashMap<u16, usize>,
@@ -443,7 +443,7 @@ impl Chunk {
         self.jump_table.insert(index,point);
     }
 
-    pub fn write_const(&mut self, index: u16, constant: Instance) {
+    pub(crate) fn write_const(&mut self, index: u16, constant: Instance) {
         if self.is_locked {
             panic!("Attempted to write to locked chunk!")
         }
@@ -465,7 +465,7 @@ impl Chunk {
         return self.instructions.get(pt)
     }
 
-    pub fn get_const(&self, index: u16) -> Instance {
+    pub(crate) fn get_const(&self, index: u16) -> Instance {
         match self.const_table.get(&index) {
             Some(instance) => {
                 return instance.to_owned()
@@ -484,7 +484,7 @@ impl Chunk {
     }
 }
 
-pub enum Bytecode {
+pub(crate) enum Bytecode {
     LoadedMain(Rc<Chunk>),
     LoadedType(Mut<Type>)
 }
@@ -500,7 +500,7 @@ impl Bytecode {
                 bytecode_vec.push(LoadedMain(Rc::new(chunk)))
             }
             else if feed.consume_string("#class(") {
-                let class = Bytecode::load_class(&mut feed, string_pool);
+                let class = load_class(&mut feed, string_pool);
                 bytecode_vec.push(LoadedType(Rc::new(RefCell::new(class))))
             }
             else if feed.empty() {
@@ -510,45 +510,115 @@ impl Bytecode {
 
         return bytecode_vec
     }
+}
 
-    fn load_class(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Type {
-        let mut canonical_name = "".to_string();
-        let mut super_canonical_name = "".to_string();
+fn load_class(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Type {
+    let mut canonical_name = "".to_string();
+    let mut super_canonical_name = "".to_string();
 
-        loop {
-            match feed.next_char() {
-                None => panic!(),
-                Some(ch) => {
-                    if ch == ';' {
-                        break
-                    }
-                    else {
-                        canonical_name.push(ch)
-                    }
-                },
-            }
+    loop {
+        match feed.next_char() {
+            None => panic!(),
+            Some(ch) => {
+                if ch == ';' {
+                    break
+                }
+                else {
+                    canonical_name.push(ch)
+                }
+            },
         }
+    }
 
-        loop {
-            match feed.next_char() {
-                None => panic!(),
-                Some(ch) => {
-                    if ch == ')' {
-                        break
-                    }
-                    else {
-                        super_canonical_name.push(ch)
-                    }
-                },
-            }
+    loop {
+        match feed.next_char() {
+            None => panic!(),
+            Some(ch) => {
+                if ch == ')' {
+                    break
+                }
+                else {
+                    super_canonical_name.push(ch)
+                }
+            },
         }
+    }
 
-        if !feed.consume_string("#endclass") { panic!() }
+    let pooled_canonical_name = string_pool.pool_string(canonical_name);
+    let mut named_functions = vec![];
 
-        TypeBuilder::new(string_pool.pool_string(canonical_name))
-            .supertype(TypeRef::new(string_pool.pool_string(super_canonical_name)))
-            .native_test_constructor(0, test_ctor)
-            .build()
+    loop {
+        if feed.consume_string("#func(") {
+            let named_function = load_function(feed, Some(Rc::clone(&pooled_canonical_name)), string_pool);
+            named_functions.push(named_function)
+        }
+        else if feed.consume_string("#endclass") {
+            break
+        }
+    }
+
+    let mut builder = TypeBuilder::new(pooled_canonical_name)
+        .supertype(TypeRef::new(string_pool.pool_string(super_canonical_name)))
+        .native_test_constructor(0, test_ctor);
+
+    for (name, function) in named_functions {
+        println!("Adding function {}", name);
+        builder = builder.instance_function(string_pool.pool_string(name), function)
+    }
+
+    builder.build()
+}
+
+fn load_function(feed: &mut ByteFeed, instance_name: Option<Rc<String>>, string_pool: &mut StringPool) -> (String, Function) {
+    let mut name = "".to_string();
+
+    loop {
+        match feed.next_char() {
+            None => {},
+            Some(ch) => {
+                if ch == ';' {
+                    break
+                }
+                else {
+                    name.push(ch)
+                }
+            },
+        }
+    }
+
+    let mut params = vec![];
+    let mut current_param = "".to_string();
+
+    loop {
+        match feed.next_char() {
+            None => {},
+            Some(ch) => {
+                if ch == ';' {
+                    if !current_param.is_empty() {
+                        params.push(TypeRef::new(string_pool.pool_str(current_param.as_str())));
+                    }
+                    break
+                }
+                else if ch == ',' {
+                    params.push(TypeRef::new(string_pool.pool_str(current_param.as_str())));
+                    current_param.clear()
+                }
+                else {
+                    name.push(ch)
+                }
+            },
+        }
+    }
+
+    let chunk = Chunk::from_bytes(feed);
+
+    match instance_name {
+        None => {
+            (name, Function::Standard(params, Rc::new(chunk)))
+        },
+        Some(name_rc) => {
+            (name, Function::Instance(TypeRef::new(Rc::clone(&name_rc)), params, Rc::new(chunk)))
+        }
     }
 }
 

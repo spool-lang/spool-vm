@@ -48,7 +48,7 @@ impl Type {
         }
     }
 
-    pub(crate) fn resolve_supertypes(&mut self, registry: &mut TypeRegistry) {
+    pub(crate) fn resolve_type_information(&mut self, registry: &mut TypeRegistry) {
         match &mut self.supertype {
             None => {},
             Some(supertype_ref) => {
@@ -57,6 +57,49 @@ impl Type {
                 }
             },
         }
+
+        let mut iter = self.instance_functions.iter_mut();
+
+        loop {
+            match &mut iter.next() {
+                None => break,
+                Some((name, instance_function)) => match instance_function {
+                    Function::Standard(params, _) => {
+                        for mut param in params {
+                            param.cache(registry)
+                        }
+                    },
+                    Function::Instance(self_type, params, _) => {
+                        self_type.cache(registry);
+
+                        for mut param in params {
+                            param.cache(registry)
+                        }
+                    },
+                    _ => {}
+                },
+            }
+        }
+
+   /*
+        for (name, instance_function) in self.instance_functions {
+            match instance_function {
+                Function::Standard(params, _) => {
+                    for mut param in params {
+                        param.cache(registry)
+                    }
+                },
+                Function::Instance(mut self_type, mut params, _) => {
+                    self_type.cache(registry);
+
+                    for mut param in params {
+                        param.cache(registry)
+                    }
+                },
+                _ => {}
+            }
+        }
+    */
     }
 
     pub fn get_canonical_name(&self) -> Rc<String> {
@@ -133,7 +176,7 @@ impl TypeRef {
         }
     }
 
-    fn get(&self) -> Mut<Type> {
+    pub(crate) fn get(&self) -> Mut<Type> {
         match &self.cached {
             None => panic!(),
             Some(_type) => Rc::clone(_type),
@@ -209,8 +252,13 @@ impl TypeBuilder {
         self
     }
 
-    pub(crate) fn instance_function(mut self, name: Rc<String>, arity: u8, func: fn(&mut VM, Instance, Vec<Instance>) -> Instance) -> TypeBuilder {
+    pub(crate) fn native_instance_function(mut self, name: Rc<String>, arity: u8, func: fn(&mut VM, Instance, Vec<Instance>) -> Instance) -> TypeBuilder {
         self.instance_functions.insert(name, NativeInstance(arity, func));
+        self
+    }
+
+    pub(crate) fn instance_function(mut self, name: Rc<String>, function: Function) -> TypeBuilder {
+        self.instance_functions.insert(name, function);
         self
     }
 
@@ -282,7 +330,7 @@ impl TypeRegistry {
         }
 
         for _type in to_resolve.iter() {
-            _type.borrow_mut().resolve_supertypes(self)
+            _type.borrow_mut().resolve_type_information(self)
         }
     }
 
@@ -360,7 +408,7 @@ pub(crate) mod string_type {
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.String"))
             .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
-            .instance_function(string_pool.pool_str("capitalize"), 0, capitalize)
+            .native_instance_function(string_pool.pool_str("capitalize"), 0, capitalize)
             .build();
         type_registry.register(_type)
     }
@@ -430,8 +478,8 @@ pub(crate) mod console_type {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Console"))
             .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
             .native_constructor(0, ctor)
-            .instance_function(string_pool.pool_str("println"), 1, println)
-            .instance_function(string_pool.pool_str("print"), 1, print)
+            .native_instance_function(string_pool.pool_str("println"), 1, println)
+            .native_instance_function(string_pool.pool_str("print"), 1, print)
             .build();
         type_registry.register(_type)
     }
@@ -476,7 +524,7 @@ pub(crate) mod random_type {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Random"))
             .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
             .native_constructor(0, ctor)
-            .instance_function(string_pool.pool_str("nextInt16"), 2, next_int16)
+            .native_instance_function(string_pool.pool_str("nextInt16"), 2, next_int16)
             .build();
         type_registry.register(_type)
     }
