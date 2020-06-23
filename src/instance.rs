@@ -137,8 +137,7 @@ pub(crate) enum Function {
     Instance(TypeRef, Vec<TypeRef>, Rc<Chunk>),
     Native(u8, fn(&mut VM, Vec<Instance>) -> Instance),
     NativeInstance(u8, fn(&mut VM, Instance, Vec<Instance>) -> Instance),
-    NativeConstructor(u8, fn(&mut VM, &Instance, Vec<Instance>)),
-    TestConstructor(u8, Rc<String>, fn(&mut VM, Vec<Instance>, Rc<String>) -> Instance)
+    NativeConstructor(u8, fn(&mut VM, &Instance, Vec<Instance>))
 }
 
 impl Debug for Function {
@@ -148,8 +147,7 @@ impl Debug for Function {
             Function::Instance(_,_,_) => write!(f, "{:?}", "function"),
             Function::Native(_, _) => write!(f, "{:?}", "native_function"),
             Function::NativeInstance(_, _) => write!(f, "{:?}", "native_function"),
-            Function::NativeConstructor(_, _) => write!(f, "{:?}", "native_function"),
-            Function::TestConstructor(_, _, _) => write!(f, "{:?}", "native_function"),
+            Function::NativeConstructor(_, _) => write!(f, "{:?}", "native_function")
         }
     }
 }
