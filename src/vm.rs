@@ -602,13 +602,13 @@ impl VM {
             Function::NativeConstructor(arity, constructor) => {
                 match op_instance {
                     None => panic!(),
-                    Some(instance) => {
+                    Some(mut instance) => {
                         let mut args: Vec<Instance> = vec![];
                         for x in 0..arity {
                             args.push(self.pop_stack())
                         }
                         args.reverse();
-                        constructor(self, &instance, args);
+                        constructor(self, &mut instance, args);
                     }
                 }
             }
