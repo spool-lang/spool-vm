@@ -9,7 +9,6 @@ use std::collections::HashMap;
 use rand::prelude::ThreadRng;
 use std::iter::FromIterator;
 use rand::Rng;
-use crate::instance::NativeValue::Empty;
 
 // Represents instances created at runtime
 #[derive(Clone, Debug)]
@@ -249,6 +248,5 @@ impl InstanceData {
 
 #[derive(Clone, Debug)]
 pub(crate) enum NativeValue {
-    Empty,
     ThreadRng(Box<ThreadRng>)
 }

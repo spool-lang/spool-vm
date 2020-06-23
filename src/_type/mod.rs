@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use crate::instance::{Function, Instance, InstanceData};
-use crate::instance::Function::{NativeInstance, Native, TestConstructor, NativeConstructor};
+use crate::instance::Function::{NativeInstance, Native, NativeConstructor};
 use std::collections::HashMap;
 use crate::string_pool::StringPool;
 use crate::vm::{VM, Mut};
@@ -238,13 +238,6 @@ impl TypeBuilder {
 
     pub(crate) fn native_constructor(mut self, arity: u8, ctor: fn(&mut VM, &Instance, Vec<Instance>)) -> TypeBuilder {
         self.ctors.push(NativeConstructor(arity, ctor));
-        self.ctorable = true;
-        self
-    }
-
-    pub(crate) fn native_test_constructor(mut self, arity: u8, ctor: fn(&mut VM, Vec<Instance>, Rc<String>) -> Instance) -> TypeBuilder {
-        let name = Rc::clone(&self.canonical_name);
-        self.ctors.push(TestConstructor(arity, name, ctor));
         self.ctorable = true;
         self
     }
