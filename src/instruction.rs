@@ -544,7 +544,7 @@ fn load_class(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Type {
         }
     }
 
-    let pooled_canonical_name = string_pool.pool_string(canonical_name);
+    let pooled_canonical_name = string_pool.pool(canonical_name);
     let mut named_functions = vec![];
 
     loop {
@@ -558,13 +558,13 @@ fn load_class(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Type {
     }
 
     let mut builder = TypeBuilder::new(pooled_canonical_name)
-        .supertype(TypeRef::new(string_pool.pool_string(super_canonical_name)))
-        .prop(Property::new(string_pool.pool_str("funny"), true, string_pool.pool_str("spool.core.Boolean")))
+        .supertype(TypeRef::new(string_pool.pool(super_canonical_name)))
+        .prop(Property::new(string_pool.pool("funny"), true, string_pool.pool("spool.core.Boolean")))
         .native_constructor(0, test_constructor);
 
     for (name, function) in named_functions {
         println!("Adding function {}", name);
-        builder = builder.instance_function(string_pool.pool_string(name), function)
+        builder = builder.instance_function(string_pool.pool(name), function)
     }
 
     builder.build()
@@ -596,12 +596,12 @@ fn load_function(feed: &mut ByteFeed, instance_name: Option<Rc<String>>, string_
             Some(ch) => {
                 if ch == ';' {
                     if !current_param.is_empty() {
-                        params.push(TypeRef::new(string_pool.pool_str(current_param.as_str())));
+                        params.push(TypeRef::new(string_pool.pool(&current_param)));
                     }
                     break
                 }
                 else if ch == ',' {
-                    params.push(TypeRef::new(string_pool.pool_str(current_param.as_str())));
+                    params.push(TypeRef::new(string_pool.pool(&current_param)));
                     current_param.clear()
                 }
                 else {
@@ -633,12 +633,12 @@ fn load_constructor(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Functi
             Some(ch) => {
                 if ch == ';' {
                     if !current_param.is_empty() {
-                        params.push(TypeRef::new(string_pool.pool_str(current_param.as_str())));
+                        params.push(TypeRef::new(string_pool.pool(&current_param)));
                     }
                     break
                 }
                 else if ch == ',' {
-                    params.push(TypeRef::new(string_pool.pool_str(current_param.as_str())));
+                    params.push(TypeRef::new(string_pool.pool(&current_param)));
                     current_param.clear()
                 }
                 else {

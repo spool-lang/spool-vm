@@ -348,9 +348,9 @@ pub(crate) mod object_type {
     use std::cell::RefCell;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Object"))
+        let _type = TypeBuilder::new(string_pool.pool("spool.core.Object"))
             .native_constructor(0, constructor)
-            .prop(Property::new(string_pool.pool_str("funny"), true, string_pool.pool_str("spool.core.Boolean")))
+            .prop(Property::new(string_pool.pool("funny"), true, string_pool.pool("spool.core.Boolean")))
             .build();
         type_registry.register(_type)
     }
@@ -370,8 +370,8 @@ pub(crate) mod boolean_type {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Boolean"))
-            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
+        let _type = TypeBuilder::new(string_pool.pool("spool.core.Boolean"))
+            .supertype(TypeRef::new(string_pool.pool("spool.core.Object")))
             .build();
         type_registry.register(_type)
     }
@@ -384,8 +384,8 @@ pub(crate) mod char_type {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Char"))
-            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
+        let _type = TypeBuilder::new(string_pool.pool("spool.core.Char"))
+            .supertype(TypeRef::new(string_pool.pool("spool.core.Object")))
             .build();
         type_registry.register(_type)
     }
@@ -400,9 +400,9 @@ pub(crate) mod string_type {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.String"))
-            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
-            .native_instance_function(string_pool.pool_str("capitalize"), 0, capitalize)
+        let _type = TypeBuilder::new(string_pool.pool("spool.core.String"))
+            .supertype(TypeRef::new(string_pool.pool("spool.core.Object")))
+            .native_instance_function(string_pool.pool("capitalize"), 0, capitalize)
             .build();
         type_registry.register(_type)
     }
@@ -423,8 +423,8 @@ pub(crate) mod array_type {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Array"))
-            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
+        let _type = TypeBuilder::new(string_pool.pool("spool.core.Array"))
+            .supertype(TypeRef::new(string_pool.pool("spool.core.Object")))
             .build();
         type_registry.register(_type)
     }
@@ -437,8 +437,8 @@ pub(crate) mod func_type {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Func"))
-            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
+        let _type = TypeBuilder::new(string_pool.pool("spool.core.Func"))
+            .supertype(TypeRef::new(string_pool.pool("spool.core.Object")))
             .build();
         type_registry.register(_type)
     }
@@ -451,8 +451,8 @@ pub(crate) mod void_type {
     use std::rc::Rc;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Void"))
-            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
+        let _type = TypeBuilder::new(string_pool.pool("spool.core.Void"))
+            .supertype(TypeRef::new(string_pool.pool("spool.core.Object")))
             .build();
         type_registry.register(_type)
     }
@@ -469,11 +469,11 @@ pub(crate) mod console_type {
     use std::cell::RefCell;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Console"))
-            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
+        let _type = TypeBuilder::new(string_pool.pool("spool.core.Console"))
+            .supertype(TypeRef::new(string_pool.pool("spool.core.Object")))
             .native_constructor(0, constructor)
-            .native_instance_function(string_pool.pool_str("println"), 1, println)
-            .native_instance_function(string_pool.pool_str("print"), 1, print)
+            .native_instance_function(string_pool.pool("println"), 1, println)
+            .native_instance_function(string_pool.pool("print"), 1, print)
             .build();
         type_registry.register(_type)
     }
@@ -517,10 +517,10 @@ pub(crate) mod random_type {
     use crate::instance::NativeValue::ThreadRng;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
-        let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Random"))
-            .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
+        let _type = TypeBuilder::new(string_pool.pool("spool.core.Random"))
+            .supertype(TypeRef::new(string_pool.pool("spool.core.Object")))
             .native_constructor(0, constructor)
-            .native_instance_function(string_pool.pool_str("nextInt16"), 2, next_int16)
+            .native_instance_function(string_pool.pool("nextInt16"), 2, next_int16)
             .build();
         type_registry.register(_type)
     }

@@ -48,7 +48,7 @@ impl VM {
     }
 
     pub fn pool_string(&mut self, string: &str) -> Rc<String> {
-        self.string_pool.pool_string(string.to_string())
+        self.string_pool.pool(string)
     }
 
     fn push_call_frame(&mut self, frame: CallFrame) {
