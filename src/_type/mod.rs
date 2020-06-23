@@ -32,6 +32,30 @@ impl Property {
     }
 }
 
+pub struct Field {
+    property: Mut<Property>,
+    value: Option<Instance>,
+    initialized: bool
+}
+
+impl Field {
+    fn new(property: Mut<Property>) -> Field {
+        Field {
+            property,
+            value: None,
+            initialized: false
+        }
+    }
+
+    fn set(&mut self, value: Instance, value_type: Mut<Type>) {
+
+    }
+}
+
+pub struct Fields {
+
+}
+
 #[derive(Debug)]
 pub struct Type {
     pub(crate) canonical_name: Rc<String>,
