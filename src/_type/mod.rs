@@ -32,30 +32,6 @@ impl Property {
     }
 }
 
-pub struct Field {
-    property: Mut<Property>,
-    value: Option<Instance>,
-    initialized: bool
-}
-
-impl Field {
-    fn new(property: Mut<Property>) -> Field {
-        Field {
-            property,
-            value: None,
-            initialized: false
-        }
-    }
-
-    fn set(&mut self, value: Instance, value_type: Mut<Type>) {
-
-    }
-}
-
-pub struct Fields {
-
-}
-
 #[derive(Debug)]
 pub struct Type {
     pub(crate) canonical_name: Rc<String>,
@@ -128,7 +104,7 @@ impl Type {
         Rc::new(actual_name)
     }
 
-    pub(crate) fn matches_type(&self, other: Mut<Type>) -> bool {
+    pub(crate) fn is_or_subtype_of(&self, other: Mut<Type>) -> bool {
         let mut other = other;
 
         loop {
@@ -138,7 +114,7 @@ impl Type {
 
             return match &other.borrow().supertype {
                 None => false,
-                Some(supertype_ref) => supertype_ref.get().borrow().matches_type(other.clone())
+                Some(supertype_ref) => supertype_ref.get().borrow().is_or_subtype_of(other.clone())
             }
         }
     }

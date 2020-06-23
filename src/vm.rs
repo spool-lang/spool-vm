@@ -194,7 +194,7 @@ impl VM {
             let prop = _type.borrow().get_property(prop_name.clone());
             let value_type = self.type_registry.get(value.get_canonical_name());
 
-            if prop.borrow().writable && prop.borrow().type_ref.get().borrow().matches_type(value_type) {
+            if prop.borrow().writable && prop.borrow().type_ref.get().borrow().is_or_subtype_of(value_type) {
                 values.borrow_mut().insert(prop_name.clone(), value);
                 return;
             }
@@ -428,7 +428,7 @@ impl VM {
         let instance_type = self.type_registry.get(instance.get_canonical_name());
         let comparison_type = self.pop_type_stack();
 
-        let result = comparison_type.borrow().matches_type(instance_type);
+        let result = comparison_type.borrow().is_or_subtype_of(instance_type);
         self.push_stack(Bool(result))
     }
 
@@ -522,7 +522,7 @@ impl VM {
                 for param_type in param_types {
                     let instance = self.pop_stack();
                     let instance_type = self.type_registry.get(instance.get_canonical_name());
-                    if !param_type.get().borrow().matches_type(instance_type) { panic!() }
+                    if !param_type.get().borrow().is_or_subtype_of(instance_type) { panic!() }
 
                     args.push(instance)
                 }
@@ -552,7 +552,7 @@ impl VM {
                 for param_type in param_types {
                     let arg_instance = self.pop_stack();
                     let instance_type = self.type_registry.get(arg_instance.get_canonical_name());
-                    if !param_type.get().borrow().matches_type(instance_type) { panic!() }
+                    if !param_type.get().borrow().is_or_subtype_of(instance_type) { panic!() }
 
                     args.push(arg_instance)
                 }
@@ -560,7 +560,7 @@ impl VM {
                 let instance = op_instance.unwrap();
                 let other_type = self.type_registry.get(instance.get_canonical_name());
 
-                if !instance_type.get().borrow().matches_type(other_type) { panic!() }
+                if !instance_type.get().borrow().is_or_subtype_of(other_type) { panic!() }
 
                 args.push(instance);
                 args.reverse();

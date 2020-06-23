@@ -4,9 +4,10 @@ use std::cell::RefCell;
 use std::fmt::{Display, Formatter, Error, Debug};
 use std::fmt;
 use crate::vm::{VM, Mut};
-use crate::_type::{Type, TypeRef};
+use crate::_type::{Type, TypeRef, Property};
 use std::collections::HashMap;
 use rand::prelude::ThreadRng;
+use std::iter::FromIterator;
 
 // Represents instances created at runtime
 #[derive(Clone, Debug)]
@@ -148,6 +149,70 @@ impl Debug for Function {
             Function::Native(_, _) => write!(f, "{:?}", "native_function"),
             Function::NativeInstance(_, _) => write!(f, "{:?}", "native_function"),
             Function::TestConstructor(_, _, _) => write!(f, "{:?}", "native_function")
+        }
+    }
+}
+
+pub struct Field {
+    property: Mut<Property>,
+    value: Option<Instance>,
+    initialized: bool
+}
+
+impl Field {
+    fn new(property: Mut<Property>) -> Field {
+        Field {
+            property,
+            value: None,
+            initialized: false
+        }
+    }
+
+    // TODO: Better error handling.
+    fn set(&mut self, value: Instance, value_type: Mut<Type>) {
+        if !value_type.borrow().is_or_subtype_of(self.property.borrow().type_ref.get()) {
+            panic!()
+        }
+        if !self.initialized || self.property.borrow().writable {
+            self.value = Some(value);
+            self.initialized = true
+        }
+        panic!()
+    }
+
+    // TODO: Better error handling.
+    fn get(&self) -> Instance {
+        return (self.value.as_ref().unwrap()).clone()
+    }
+}
+
+pub struct InstanceData {
+    internal: HashMap<Rc<String>, Mut<Field>>
+}
+
+impl InstanceData {
+    fn new(props: Vec<Mut<Property>>) -> InstanceData {
+
+        let map: Vec<(Rc<String>, Mut<Field>)> = props.iter().map(|x| {
+            (Rc::clone(&x.borrow().name), Rc::new(RefCell::new(Field::new(Rc::clone(&x)))))
+        }).collect();
+
+        InstanceData {
+            internal: HashMap::from_iter(map)
+        }
+    }
+
+    fn get(&self, field_name: Rc<String>) -> Instance {
+        match self.internal.get(field_name.as_ref()) {
+            None => panic!(),
+            Some(field) => field.borrow().get(),
+        }
+    }
+
+    fn set(&self, field_name: Rc<String>, value: Instance, value_type: Mut<Type>) {
+        match self.internal.get(field_name.as_ref()) {
+            None => panic!(),
+            Some(field) => field.borrow_mut().set(value, value_type)
         }
     }
 }
