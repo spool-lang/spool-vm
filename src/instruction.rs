@@ -545,25 +545,30 @@ fn load_class(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Type {
     }
 
     let pooled_canonical_name = string_pool.pool(canonical_name);
+    let mut constructors = vec![];
     let mut named_functions = vec![];
 
     loop {
         if feed.consume_string("#func(") {
             let named_function = load_function(feed, Some(Rc::clone(&pooled_canonical_name)), string_pool);
             named_functions.push(named_function)
-        }
-        else if feed.consume_string("#endclass") {
+        } else if feed.consume_string("#ctor(") {
+            let constructor = load_constructor(feed, string_pool);
+            constructors.push(constructor)
+        } else if feed.consume_string("#endclass") {
             break
         }
     }
 
     let mut builder = TypeBuilder::new(pooled_canonical_name)
         .supertype(TypeRef::new(string_pool.pool(super_canonical_name)))
-        .prop(Property::new(string_pool.pool("funny"), true, string_pool.pool("spool.core.Boolean")))
-        .native_constructor(0, test_constructor);
+        .prop(Property::new(string_pool.pool("funny"), true, string_pool.pool("spool.core.Boolean")));
+
+    for constructor in constructors {
+        builder = builder.constructor(constructor)
+    }
 
     for (name, function) in named_functions {
-        println!("Adding function {}", name);
         builder = builder.instance_function(string_pool.pool(name), function)
     }
 

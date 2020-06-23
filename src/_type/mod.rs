@@ -236,6 +236,11 @@ impl TypeBuilder {
         return self
     }
 
+    pub(crate) fn constructor(mut self, constructor: Function) -> TypeBuilder {
+        self.ctors.push(constructor);
+        return self
+    }
+
     pub(crate) fn native_constructor(mut self, arity: u8, ctor: fn(&mut VM, &Instance, Vec<Instance>)) -> TypeBuilder {
         self.ctors.push(NativeConstructor(arity, ctor));
         self.ctorable = true;
