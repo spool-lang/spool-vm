@@ -13,7 +13,6 @@ pub(crate) mod number;
 pub struct Property {
     pub(crate) name: Rc<String>,
     pub(crate) writable: bool,
-    pub(crate) _type: Rc<String>,
     pub(crate) type_ref: TypeRef
 }
 
@@ -22,7 +21,6 @@ impl Property {
         Property {
             name,
             writable,
-            _type: Rc::clone(&type_name),
             type_ref: TypeRef::new(Rc::clone(&type_name))
         }
     }
@@ -41,8 +39,7 @@ pub struct Type {
     ctors: Vec<Function>,
     ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
-    prop_map: HashMap<Rc<String>, Mut<Property>>,
-    props: Vec<Rc<Property>>
+    prop_map: HashMap<Rc<String>, Mut<Property>>
 }
 
 impl Type {
@@ -53,8 +50,7 @@ impl Type {
             ctors,
             ctorable,
             instance_functions,
-            prop_map,
-            props: vec![]
+            prop_map
         }
     }
 
