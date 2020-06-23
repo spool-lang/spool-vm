@@ -191,10 +191,10 @@ pub struct InstanceData {
 }
 
 impl InstanceData {
-    fn new(props: Vec<Mut<Property>>) -> InstanceData {
+    pub(crate) fn new(prop_map: &HashMap<Rc<String>, Mut<Property>>) -> InstanceData {
 
-        let map: Vec<(Rc<String>, Mut<Field>)> = props.iter().map(|x| {
-            (Rc::clone(&x.borrow().name), Rc::new(RefCell::new(Field::new(Rc::clone(&x)))))
+        let map: HashMap<Rc<String>, Mut<Field>> = prop_map.iter().map(|(name, prop)| {
+            (Rc::clone(name), Rc::new(RefCell::new(Field::new(Rc::clone(prop)))))
         }).collect();
 
         InstanceData {

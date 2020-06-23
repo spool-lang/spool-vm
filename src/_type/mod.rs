@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use crate::instance::{Function, Instance};
+use crate::instance::{Function, Instance, InstanceData};
 use crate::instance::Function::{NativeInstance, Native, TestConstructor};
 use std::collections::HashMap;
 use crate::string_pool::StringPool;
@@ -155,6 +155,10 @@ impl Type {
             },
             Some(prop) => Rc::clone(&prop),
         }
+    }
+
+    pub(crate) fn create_instance_data(&self) -> InstanceData {
+        return InstanceData::new(&self.prop_map)
     }
 }
 
