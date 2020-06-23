@@ -192,7 +192,7 @@ impl VM {
 
         if let Object(_type, values) = instance {
             let prop = _type.borrow().get_property(prop_name.clone());
-            let value_type = prop.borrow().type_ref.get();
+            let value_type = self.type_registry.get(value.get_canonical_name());
 
             if prop.borrow().writable && prop.borrow().type_ref.get().borrow().matches_type(value_type) {
                 values.borrow_mut().insert(prop_name.clone(), value);
