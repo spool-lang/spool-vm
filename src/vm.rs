@@ -574,7 +574,39 @@ impl VM {
                 self.register.clear_space(new_register_size - register_size);
 
                 if let Void = returned {} else { self.push_stack(returned) };
-            }
+            },
+            Function::Constructor(param_types, chunk) => {
+                let mut args: Vec<Instance> = vec![];
+                println!("Param types: {:?}", param_types);
+
+                for param_type in param_types {
+                    let arg_instance = self.pop_stack();
+                    let instance_type = self.type_registry.get(arg_instance.get_canonical_name());
+                    if !param_type.get().borrow().is_or_subtype_of(instance_type) { panic!() }
+
+                    args.push(arg_instance)
+                }
+
+                let instance = op_instance.unwrap();
+                args.push(instance);
+                args.reverse();
+                let stack_size = self.stack.len();
+                let type_stack_size = self.type_stack.len();
+                let register_size = self.register.size;
+                for arg in args {
+                    self.register.declare(arg, &false)
+                }
+                let frame = CallFrame::new_inner(chunk.clone(), stack_size, type_stack_size, register_size);
+                self.push_call_frame(frame);
+                let returned = self.execute();
+
+                self.stack.truncate(stack_size);
+                self.type_stack.truncate(type_stack_size);
+                let new_register_size = self.register.size;
+                self.register.clear_space(new_register_size - register_size);
+
+                if let Void = returned {} else { self.push_stack(returned) };
+            },
             Function::Native(arity, function) => {
                 let mut args: Vec<Instance> = vec![];
                 for x in 0..arity {

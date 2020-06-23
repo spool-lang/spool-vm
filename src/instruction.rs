@@ -605,7 +605,7 @@ fn load_function(feed: &mut ByteFeed, instance_name: Option<Rc<String>>, string_
                     current_param.clear()
                 }
                 else {
-                    name.push(ch)
+                    current_param.push(ch)
                 }
             },
         }
@@ -621,6 +621,35 @@ fn load_function(feed: &mut ByteFeed, instance_name: Option<Rc<String>>, string_
             (name, Function::Instance(TypeRef::new(Rc::clone(&name_rc)), params, Rc::new(chunk)))
         }
     }
+}
+
+fn load_constructor(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Function {
+    let mut params = vec![];
+    let mut current_param = "".to_string();
+
+    loop {
+        match feed.next_char() {
+            None => {},
+            Some(ch) => {
+                if ch == ';' {
+                    if !current_param.is_empty() {
+                        params.push(TypeRef::new(string_pool.pool_str(current_param.as_str())));
+                    }
+                    break
+                }
+                else if ch == ',' {
+                    params.push(TypeRef::new(string_pool.pool_str(current_param.as_str())));
+                    current_param.clear()
+                }
+                else {
+                    current_param.push(ch)
+                }
+            },
+        }
+    }
+
+    let chunk = Chunk::from_bytes(feed);
+    return Function::Constructor(params, Rc::new(chunk))
 }
 
 fn test_constructor(vm: &mut VM, uninitialized: &Instance, args: Vec<Instance>) {
