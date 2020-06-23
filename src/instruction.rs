@@ -6,7 +6,7 @@ use crate::instruction::Instruction::Call;
 use std::string::FromUtf8Error;
 use crate::instance::Instance::{Str, Int16, Bool, Object};
 use std::num::ParseIntError;
-use crate::_type::{Type, TypeBuilder, TypeRef};
+use crate::_type::{Type, TypeBuilder, TypeRef, Property};
 use std::str::Utf8Error;
 use crate::string_pool::StringPool;
 use crate::instruction::Bytecode::{LoadedType, LoadedMain};
@@ -461,7 +461,7 @@ impl Chunk {
         self.is_locked = true;
     }
 
-    pub fn get(&self, pt : usize) -> Option<&Instruction> {
+    pub fn get_instruction(&self, pt : usize) -> Option<&Instruction> {
         return self.instructions.get(pt)
     }
 
@@ -559,7 +559,8 @@ fn load_class(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Type {
 
     let mut builder = TypeBuilder::new(pooled_canonical_name)
         .supertype(TypeRef::new(string_pool.pool_string(super_canonical_name)))
-        .native_test_constructor(0, test_ctor);
+        .prop(Property::new(string_pool.pool_str("funny"), true, string_pool.pool_str("spool.core.Boolean")))
+        .native_constructor(0, test_constructor);
 
     for (name, function) in named_functions {
         println!("Adding function {}", name);
@@ -622,9 +623,11 @@ fn load_function(feed: &mut ByteFeed, instance_name: Option<Rc<String>>, string_
     }
 }
 
-fn test_ctor(vm: &mut VM, args: Vec<Instance>, canonical_name: Rc<String>) -> Instance {
-    let _type = vm.type_from_name(canonical_name.as_str());
-    let mut values = HashMap::new();
-    values.insert(vm.pool_string("funny"), Bool(false));
-    return Object(_type, Rc::new(RefCell::new(values)));
+fn test_constructor(vm: &mut VM, uninitialized: &Instance, args: Vec<Instance>) {
+    if let Object(_type, data) = uninitialized {
+        crate::_type::object_type::constructor(vm, uninitialized, args);
+        data.set(vm.pool_string("funny"), Bool(false), vm.type_from_name("spool.core.Boolean"));
+        return;
+    }
+    panic!()
 }

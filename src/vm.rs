@@ -67,9 +67,9 @@ impl VM {
     fn execute(&mut self) -> Instance {
         loop {
             let chunk = self.get_call_frame().borrow_mut().get_chunk();
-            let pc = self.get_call_frame().borrow_mut().pc;
+            let pc = self.get_call_frame().borrow().pc;
 
-            let result = match chunk.get(pc) {
+            let result = match chunk.get_instruction(pc) {
                 None => InstructionResult::ReturnVoid,
                 Some(instruction) => {
                     self.execute_instruction(instruction)
@@ -165,7 +165,9 @@ impl VM {
     fn new_instance(&mut self, index: &u16) {
         let _type = self.pop_type_stack();
         let ctor = _type.borrow().get_ctor(*index as usize);
-        self.call_function(None, ctor);
+        let instance = Object(Rc::clone(&_type), _type.borrow_mut().create_instance_data());
+        self.call_function(Some(Object(Rc::clone(&_type), _type.borrow_mut().create_instance_data())), ctor);
+        self.push_stack(instance)
     }
 
     fn instance_get(&mut self, index: u16) {
@@ -173,14 +175,10 @@ impl VM {
         let chunk = Rc::clone(&self.get_call_frame().borrow().chunk);
         let prop_name = chunk.get_name(index);
 
-        if let Object(_type, values) = instance {
+        if let Object(_type, mut data) = instance {
 
-            println!("Values: {:?}", values.borrow());
-
-            match values.borrow().get(prop_name.as_ref()) {
-                None => panic!(),
-                Some(value) => self.push_stack(value.clone()),
-            }
+            let value =  &mut data.get(prop_name);
+            self.push_stack((*value).clone())
         }
     }
 
@@ -194,12 +192,8 @@ impl VM {
             let prop = _type.borrow().get_property(prop_name.clone());
             let value_type = self.type_registry.get(value.get_canonical_name());
 
-            if prop.borrow().writable && prop.borrow().type_ref.get().borrow().is_or_subtype_of(value_type) {
-                values.borrow_mut().insert(prop_name.clone(), value);
-                return;
-            }
+            values.set(Rc::clone(&prop_name), value, Rc::clone(&value_type));
         }
-        panic!()
     }
 
     fn add(&mut self) {
@@ -605,6 +599,19 @@ impl VM {
                     }
                 }
             },
+            Function::NativeConstructor(arity, constructor) => {
+                match op_instance {
+                    None => panic!(),
+                    Some(instance) => {
+                        let mut args: Vec<Instance> = vec![];
+                        for x in 0..arity {
+                            args.push(self.pop_stack())
+                        }
+                        args.reverse();
+                        constructor(self, &instance, args);
+                    }
+                }
+            }
             Function::TestConstructor(arity, canonical_name, function) => {
                 let mut args: Vec<Instance> = vec![];
                 for x in 0..arity {

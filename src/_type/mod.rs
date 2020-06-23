@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use crate::instance::{Function, Instance, InstanceData};
-use crate::instance::Function::{NativeInstance, Native, TestConstructor};
+use crate::instance::Function::{NativeInstance, Native, TestConstructor, NativeConstructor};
 use std::collections::HashMap;
 use crate::string_pool::StringPool;
 use crate::vm::{VM, Mut};
@@ -17,7 +17,7 @@ pub struct Property {
 }
 
 impl Property {
-    fn new(name: Rc<String>, writable: bool, type_name: Rc<String>) -> Property {
+    pub(crate) fn new(name: Rc<String>, writable: bool, type_name: Rc<String>) -> Property {
         Property {
             name,
             writable,
@@ -236,8 +236,8 @@ impl TypeBuilder {
         return self
     }
 
-    pub(crate) fn native_constructor(mut self, arity: u8, ctor: fn(&mut VM, Vec<Instance>) -> Instance) -> TypeBuilder {
-        self.ctors.push(Native(arity, ctor));
+    pub(crate) fn native_constructor(mut self, arity: u8, ctor: fn(&mut VM, &Instance, Vec<Instance>)) -> TypeBuilder {
+        self.ctors.push(NativeConstructor(arity, ctor));
         self.ctorable = true;
         self
     }
@@ -356,18 +356,17 @@ pub(crate) mod object_type {
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Object"))
-            .native_constructor(0, ctor)
+            .native_constructor(0, constructor)
             .prop(Property::new(string_pool.pool_str("funny"), true, string_pool.pool_str("spool.core.Boolean")))
             .build();
         type_registry.register(_type)
     }
 
-    fn ctor(vm: &mut VM, args: Vec<Instance>) -> Instance {
-        let _type = vm.type_from_name("spool.core.Object");
-        let mut values = HashMap::new();
-        values.insert(vm.pool_string("funny"), Bool(false));
-
-        return Object(_type, Rc::new(RefCell::new(values)));
+    pub(crate) fn constructor(vm: &mut VM, uninitialized: &Instance, args: Vec<Instance>) {
+        if let Object(_, data) = uninitialized {
+            return;
+        }
+        panic!()
     }
 }
 
@@ -479,18 +478,19 @@ pub(crate) mod console_type {
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Console"))
             .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
-            .native_constructor(0, ctor)
+            .native_constructor(0, constructor)
             .native_instance_function(string_pool.pool_str("println"), 1, println)
             .native_instance_function(string_pool.pool_str("print"), 1, print)
             .build();
         type_registry.register(_type)
     }
 
-    fn ctor(vm: &mut VM, args: Vec<Instance>) -> Instance {
-        let _type = vm.type_from_name("spool.core.Console");
-        let mut values = HashMap::new();
-
-        return Object(_type, Rc::new(RefCell::new(values)));
+    fn constructor(vm: &mut VM, uninitialized: &Instance, args: Vec<Instance>) {
+        if let Object(_, data) = uninitialized {
+            super::object_type::constructor(vm, uninitialized, args);
+            return;
+        }
+        panic!()
     }
 
     fn println(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
@@ -525,23 +525,28 @@ pub(crate) mod random_type {
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool_str("spool.core.Random"))
             .supertype(TypeRef::new(string_pool.pool_str("spool.core.Object")))
-            .native_constructor(0, ctor)
+            .native_constructor(0, constructor)
             .native_instance_function(string_pool.pool_str("nextInt16"), 2, next_int16)
             .build();
         type_registry.register(_type)
     }
 
-    fn ctor(vm: &mut VM, args: Vec<Instance>) -> Instance {
-        return Random(Box::new(thread_rng()))
+    //TODO: Fix the type of that field.
+    fn constructor(vm: &mut VM, uninitialized: &Instance, args: Vec<Instance>) {
+        if let Object(_, data) = uninitialized {
+            super::object_type::constructor(vm, uninitialized, args);
+            data.set(vm.pool_string("rng"), Random(Box::new(thread_rng())), vm.type_from_name("spool.core.Object"));
+            return;
+        }
+        panic!()
     }
 
     fn next_int16(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
         if let (Some(Int16(start)), Some(Int16(end))) = (args.get(0), args.get(1)) {
-            match instance {
-                Random(mut rng) => {
+            if let Object(_, data) = instance {
+                if let Random(mut rng) = data.get(vm.pool_string("rng")) {
                     return Int16(rng.gen_range(start, end))
                 }
-                _ => panic!()
             }
         }
         panic!()

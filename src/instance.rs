@@ -14,7 +14,7 @@ use std::iter::FromIterator;
 pub(crate) enum Instance {
     // Represents both instances of the builtin object type & instances
     // of non-builtin subtypes.
-    Object(Mut<Type>, Rc<RefCell<HashMap<Rc<String>, Instance>>>),
+    Object(Mut<Type>, InstanceData),
     Random(Box<ThreadRng>),
     Bool(bool),
     Byte(i8),
@@ -138,6 +138,7 @@ pub(crate) enum Function {
     Instance(TypeRef, Vec<TypeRef>, Rc<Chunk>),
     Native(u8, fn(&mut VM, Vec<Instance>) -> Instance),
     NativeInstance(u8, fn(&mut VM, Instance, Vec<Instance>) -> Instance),
+    NativeConstructor(u8, fn(&mut VM, &Instance, Vec<Instance>)),
     TestConstructor(u8, Rc<String>, fn(&mut VM, Vec<Instance>, Rc<String>) -> Instance)
 }
 
@@ -148,11 +149,13 @@ impl Debug for Function {
             Function::Instance(_,_,_) => write!(f, "{:?}", "function"),
             Function::Native(_, _) => write!(f, "{:?}", "native_function"),
             Function::NativeInstance(_, _) => write!(f, "{:?}", "native_function"),
-            Function::TestConstructor(_, _, _) => write!(f, "{:?}", "native_function")
+            Function::NativeConstructor(_, _) => write!(f, "{:?}", "native_function"),
+            Function::TestConstructor(_, _, _) => write!(f, "{:?}", "native_function"),
         }
     }
 }
 
+#[derive(Debug)]
 pub struct Field {
     property: Mut<Property>,
     value: Option<Instance>,
@@ -170,12 +173,10 @@ impl Field {
 
     // TODO: Better error handling.
     fn set(&mut self, value: Instance, value_type: Mut<Type>) {
-        if !value_type.borrow().is_or_subtype_of(self.property.borrow().type_ref.get()) {
-            panic!()
-        }
         if !self.initialized || self.property.borrow().writable {
             self.value = Some(value);
-            self.initialized = true
+            self.initialized = true;
+            return;
         }
         panic!()
     }
@@ -186,6 +187,7 @@ impl Field {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct InstanceData {
     internal: HashMap<Rc<String>, Mut<Field>>
 }
@@ -202,14 +204,14 @@ impl InstanceData {
         }
     }
 
-    fn get(&self, field_name: Rc<String>) -> Instance {
+    pub(crate) fn get(&self, field_name: Rc<String>) -> Instance {
         match self.internal.get(field_name.as_ref()) {
             None => panic!(),
             Some(field) => field.borrow().get(),
         }
     }
 
-    fn set(&self, field_name: Rc<String>, value: Instance, value_type: Mut<Type>) {
+    pub(crate) fn set(&self, field_name: Rc<String>, value: Instance, value_type: Mut<Type>) {
         match self.internal.get(field_name.as_ref()) {
             None => panic!(),
             Some(field) => field.borrow_mut().set(value, value_type)
