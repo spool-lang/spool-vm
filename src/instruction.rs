@@ -391,8 +391,7 @@ impl Chunk {
                     else if boolean.is_ok() {
                         chunk.write_const(index, Bool(boolean.unwrap()))
                     }
-                    else {
-                        //TODO: If there are no constants, this panics.
+                    else if !current_string.is_empty() {
                         panic!()
                     }
                 }
