@@ -544,6 +544,7 @@ fn load_class(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Type {
     }
 
     let pooled_canonical_name = string_pool.pool(canonical_name);
+    let mut properties = vec![];
     let mut constructors = vec![];
     let mut named_functions = vec![];
 
@@ -554,14 +555,20 @@ fn load_class(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Type {
         } else if feed.consume_string("#ctor(") {
             let constructor = load_constructor(feed, string_pool);
             constructors.push(constructor)
+        } else if feed.consume_string("#prop(") {
+            let property = load_property(feed, string_pool);
+            properties.push(property)
         } else if feed.consume_string("#endclass") {
             break
         }
     }
 
     let mut builder = TypeBuilder::new(pooled_canonical_name)
-        .supertype(TypeRef::new(string_pool.pool(super_canonical_name)))
-        .prop(Property::new(string_pool.pool("greeting"), true, string_pool.pool("spool.core.String")));
+        .supertype(TypeRef::new(string_pool.pool(super_canonical_name)));
+
+    for property in properties {
+        builder = builder.prop(property)
+    }
 
     for constructor in constructors {
         builder = builder.constructor(constructor)
@@ -654,6 +661,60 @@ fn load_constructor(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Functi
 
     let chunk = Chunk::from_bytes(feed);
     return Function::Constructor(params, Rc::new(chunk))
+}
+
+fn load_property(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Property {
+    let mut name = "".to_string();
+    let mut type_name = "".to_string();
+
+    let writable = match feed.next_char() {
+        None => panic!(),
+        Some(c) => {
+            match c {
+                '0' => false,
+                '1' => true,
+                _ => panic!()
+            }
+        },
+    };
+
+    match feed.next_char() {
+        None => panic!(),
+        Some(ch) => {
+            if ch != ';' { panic!() }
+        },
+    }
+
+    loop {
+        match feed.next_char() {
+            None => panic!(),
+            Some(ch) => {
+                if ch == ';' {
+                    println!("{}", type_name);
+                    break
+                }
+                else {
+                    name.push(ch)
+                }
+            },
+        }
+    }
+
+    loop {
+        match feed.next_char() {
+            None => panic!(),
+            Some(ch) => {
+                if ch == ')' {
+                    break
+                }
+                else {
+                    type_name.push(ch)
+                }
+            },
+        }
+    }
+
+    return Property::new(string_pool.pool(name), writable, string_pool.pool(type_name))
 }
 
 fn test_constructor(vm: &mut VM, uninitialized: &Instance, args: Vec<Instance>) {
