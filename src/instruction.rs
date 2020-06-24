@@ -365,6 +365,32 @@ impl Chunk {
         current_string.clear();
         index = 0;
 
+        // Jumps
+        loop {
+            let ch = feed.next_char().unwrap();
+
+            if ch == ';' {
+                if !current_string.is_empty() {
+                    chunk.write_jump(index, str::parse::<usize>(current_string.as_str()).unwrap())
+                }
+                current_string.clear();
+                break
+            }
+            else if ch == ',' {
+                if !current_string.is_empty() {
+                    chunk.write_jump(index, str::parse::<usize>(current_string.as_str()).unwrap())
+                }
+                current_string.clear();
+                index += 1
+            }
+            else {
+                current_string.push(ch)
+            }
+        }
+
+        current_string.clear();
+        index = 0;
+
         // Constants
         let mut string_mode = false;
         let mut found_string = false;
