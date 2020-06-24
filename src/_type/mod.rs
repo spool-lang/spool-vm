@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use crate::instance::{Function, Instance, InstanceData};
-use crate::instance::Function::{NativeInstance, Native, NativeConstructor};
+use crate::instance::Function::{NativeInstance, Native, NativeConstructor, Constructor};
 use std::collections::HashMap;
 use crate::string_pool::StringPool;
 use crate::vm::{VM, Mut};
@@ -36,7 +36,7 @@ impl Property {
 pub struct Type {
     pub(crate) canonical_name: Rc<String>,
     supertype: Option<TypeRef>,
-    ctors: Vec<Function>,
+    constructor: Vec<Function>,
     ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
     prop_map: HashMap<Rc<String>, Mut<Property>>
@@ -47,7 +47,7 @@ impl Type {
         Type {
             canonical_name,
             supertype,
-            ctors,
+            constructor: ctors,
             ctorable,
             instance_functions,
             prop_map
@@ -63,6 +63,16 @@ impl Type {
                 }
             },
         }
+
+        let mut constructor_iter = self.constructor.iter_mut();
+
+        constructor_iter.for_each(|constructor| {
+            if let Constructor(params, _) = constructor {
+                for param in params {
+                    param.resolve_type(registry)
+                }
+            }
+        });
 
         let mut function_iter = self.instance_functions.iter_mut();
 
@@ -121,7 +131,7 @@ impl Type {
 
     pub(crate) fn get_ctor(&self, index: usize) -> Function {
         if !self.ctorable { panic!() }
-        match self.ctors.get(index) {
+        match self.constructor.get(index) {
             None => {
                 let mut sup_op = self.supertype.clone();
                 match &mut sup_op {
