@@ -540,7 +540,6 @@ impl VM {
             },
             Function::Instance(instance_type, param_types, chunk) => {
                 let mut args: Vec<Instance> = vec![];
-                println!("Param types: {:?}", param_types);
 
                 for param_type in param_types {
                     let arg_instance = self.pop_stack();
