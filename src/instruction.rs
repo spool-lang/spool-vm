@@ -562,7 +562,7 @@ fn load_class(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Type {
 
     let mut builder = TypeBuilder::new(pooled_canonical_name)
         .supertype(TypeRef::new(string_pool.pool(super_canonical_name)))
-        .prop(Property::new(string_pool.pool("funny"), true, string_pool.pool("spool.core.Boolean")));
+        .prop(Property::new(string_pool.pool("greeting"), true, string_pool.pool("spool.core.String")));
 
     for constructor in constructors {
         builder = builder.constructor(constructor)

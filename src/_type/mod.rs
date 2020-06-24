@@ -238,6 +238,7 @@ impl TypeBuilder {
 
     pub(crate) fn constructor(mut self, constructor: Function) -> TypeBuilder {
         self.ctors.push(constructor);
+        self.ctorable = true;
         return self
     }
 

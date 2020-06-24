@@ -166,8 +166,8 @@ impl VM {
         let _type = self.pop_type_stack();
         let ctor = _type.borrow().get_ctor(*index as usize);
         let instance = Object(Rc::clone(&_type), _type.borrow_mut().create_instance_data());
-        self.call_function(Some(Object(Rc::clone(&_type), _type.borrow_mut().create_instance_data())), ctor);
-        self.push_stack(instance)
+        self.call_function(Some(instance.clone()), ctor);
+        self.push_stack(instance.clone())
     }
 
     fn instance_get(&mut self, index: u16) {
@@ -189,7 +189,6 @@ impl VM {
         let prop_name = chunk.get_name(index);
 
         if let Object(_type, values) = instance {
-            let prop = _type.borrow().get_property(prop_name.clone());
             let value_type = self.type_registry.get(value.get_canonical_name());
 
             values.set(Rc::clone(&prop_name), value, Rc::clone(&value_type));
@@ -598,14 +597,12 @@ impl VM {
                 }
                 let frame = CallFrame::new_inner(chunk.clone(), stack_size, type_stack_size, register_size);
                 self.push_call_frame(frame);
-                let returned = self.execute();
+                self.execute();
 
                 self.stack.truncate(stack_size);
                 self.type_stack.truncate(type_stack_size);
                 let new_register_size = self.register.size;
                 self.register.clear_space(new_register_size - register_size);
-
-                if let Void = returned {} else { self.push_stack(returned) };
             },
             Function::Native(arity, function) => {
                 let mut args: Vec<Instance> = vec![];
