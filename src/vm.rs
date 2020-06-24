@@ -167,7 +167,7 @@ impl VM {
         let ctor = _type.borrow().get_ctor(*index as usize);
         let instance = Object(Rc::clone(&_type), _type.borrow_mut().create_instance_data());
         self.call_function(Some(instance.clone()), ctor);
-        self.push_stack(instance.clone())
+        self.push_stack(instance.clone());
     }
 
     fn instance_get(&mut self, index: u16) {

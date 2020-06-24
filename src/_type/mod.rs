@@ -39,7 +39,7 @@ pub struct Type {
     constructor: Vec<Function>,
     ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
-    prop_map: HashMap<Rc<String>, Mut<Property>>
+    prop_map: HashMap<Rc<String>, Mut<Property>>,
 }
 
 impl Type {
@@ -313,6 +313,7 @@ impl TypeRegistry {
         func_type::create(string_pool, &mut _self);
         void_type::create(string_pool, &mut _self);
         console_type::create(string_pool, &mut _self);
+        raw_rng_type::create(string_pool, &mut _self);
         random_type::create(string_pool, &mut _self);
         _self
     }
@@ -519,22 +520,34 @@ pub(crate) mod console_type {
     }
 }
 
+pub(crate) mod raw_rng_type {
+    use crate::string_pool::StringPool;
+    use crate::_type::{TypeRegistry, TypeBuilder, TypeRef};
+
+    pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
+        let _type = TypeBuilder::new(string_pool.pool("spool.core.RawRng"))
+            .supertype(TypeRef::new(string_pool.pool("spool.core.Object")))
+            .build();
+        type_registry.register(_type);
+    }
+}
+
 pub(crate) mod random_type {
     use crate::string_pool::StringPool;
-    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef};
+    use crate::_type::{TypeBuilder, TypeRegistry, TypeRef, Property};
     use std::rc::Rc;
     use crate::vm::VM;
     use crate::instance::Instance;
-    use crate::instance::Instance::{Void, Bool, Object, Int16};
+    use crate::instance::Instance::{Void, Bool, Object, Int16, RawRng};
     use std::collections::HashMap;
     use std::cell::RefCell;
     use rand::{thread_rng, Rng};
     use std::borrow::BorrowMut;
-    use crate::instance::NativeValue::ThreadRng;
 
     pub(crate) fn create(string_pool: &mut StringPool, type_registry: &mut TypeRegistry) {
         let _type = TypeBuilder::new(string_pool.pool("spool.core.Random"))
             .supertype(TypeRef::new(string_pool.pool("spool.core.Object")))
+            .prop(Property::new(string_pool.pool("rng"), false, string_pool.pool("spool.core.RawRng")))
             .native_constructor(0, constructor)
             .native_instance_function(string_pool.pool("nextInt16"), 2, next_int16)
             .build();
@@ -545,7 +558,8 @@ pub(crate) mod random_type {
     fn constructor(vm: &mut VM, uninitialized: &Instance, args: Vec<Instance>) {
         if let Object(_, data) = uninitialized {
             super::object_type::constructor(vm, uninitialized, args);
-            data.set_native(vm.pool_string("rng"), ThreadRng(Box::new(thread_rng())));
+            let foo = vm.pool_string("spool.core.RawRng");
+            data.set(vm.pool_string("rng"), RawRng(Box::new(thread_rng())), vm.type_from_name(foo.as_str()));
             return;
         }
         panic!()
@@ -554,7 +568,7 @@ pub(crate) mod random_type {
     fn next_int16(vm: &mut VM, instance: Instance, args: Vec<Instance>) -> Instance {
         if let (Some(Int16(start)), Some(Int16(end))) = (args.get(0), args.get(1)) {
             if let Object(_, data) = instance {
-                if let ThreadRng(mut rng) = data.get_native(vm.pool_string("rng")) {
+                if let RawRng(mut rng) = data.get(vm.pool_string("rng")) {
                     return Int16(rng.gen_range(start, end))
                 }
             }

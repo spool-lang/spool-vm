@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use rand::prelude::ThreadRng;
 use std::iter::FromIterator;
 use rand::Rng;
+use crate::string_pool::StringPool;
 
 // Represents instances created at runtime
 #[derive(Clone, Debug)]
@@ -16,6 +17,7 @@ pub(crate) enum Instance {
     // Represents both instances of the builtin object type & instances
     // of non-builtin subtypes.
     Object(Mut<Type>, InstanceData),
+    RawRng(Box<ThreadRng>),
     Bool(bool),
     Byte(i8),
     UByte(u8),
@@ -95,6 +97,7 @@ impl Display for Instance {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         return match self {
             Instance::Object(_, _) => write!(f, "{}", self.get_canonical_name()),
+            Instance::RawRng(_) => write!(f, "{}", "rng"),
             Instance::Bool(boolean) => write!(f, "{}", boolean),
             Instance::Byte(byte) => write!(f, "{}b", byte),
             Instance::UByte(ubyte) => write!(f, "{}ub", ubyte),
@@ -153,7 +156,7 @@ impl Debug for Function {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Field {
     property: Mut<Property>,
     value: Option<Instance>,
@@ -185,37 +188,20 @@ impl Field {
     }
 }
 
-#[derive(Debug)]
-pub struct NativeField {
-    value: Option<NativeValue>
-}
-
-impl NativeField {
-    fn get(&self) -> NativeValue {
-        return (self.value.as_ref().unwrap()).clone()
-    }
-
-    fn set(&mut self, value: NativeValue) {
-        self.value = Some(value)
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct InstanceData {
-    fields: HashMap<Rc<String>, Mut<Field>>,
-    native: HashMap<Rc<String>, Mut<NativeField>>
+    fields: HashMap<Rc<String>, Mut<Field>>
 }
 
 impl InstanceData {
     pub(crate) fn new(prop_map: &HashMap<Rc<String>, Mut<Property>>) -> InstanceData {
 
-        let map: HashMap<Rc<String>, Mut<Field>> = prop_map.iter().map(|(name, prop)| {
+        let fields: HashMap<Rc<String>, Mut<Field>> = prop_map.iter().map(|(name, prop)| {
             (Rc::clone(name), Rc::new(RefCell::new(Field::new(Rc::clone(prop)))))
         }).collect();
 
         InstanceData {
-            fields: HashMap::from_iter(map),
-            native: Default::default()
+            fields
         }
     }
 
@@ -232,23 +218,4 @@ impl InstanceData {
             Some(field) => field.borrow_mut().set(value, value_type)
         }
     }
-
-    pub(crate) fn get_native(&self, field_name: Rc<String>) -> NativeValue {
-        match self.native.get(field_name.as_ref()) {
-            None => panic!(),
-            Some(field) => { field.borrow().get() },
-        }
-    }
-
-    pub(crate) fn set_native(&self, field_name: Rc<String>, value: NativeValue) {
-        match self.native.get(field_name.as_ref()) {
-            None => panic!(),
-            Some(field) => field.borrow_mut().set(value),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub(crate) enum NativeValue {
-    ThreadRng(Box<ThreadRng>)
 }
