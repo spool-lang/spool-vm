@@ -124,7 +124,7 @@ impl Type {
 
             return match &other.borrow().supertype {
                 None => false,
-                Some(supertype_ref) => supertype_ref.get().borrow().is_or_subtype_of(other.clone())
+                Some(supertype_ref) => self.is_or_subtype_of(supertype_ref.get())
             }
         }
     }
