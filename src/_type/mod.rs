@@ -130,7 +130,7 @@ impl Type {
     }
 
     pub(crate) fn get_ctor(&self, index: usize) -> Function {
-        if !self.ctorable { panic!() }
+        if !self.ctorable { panic!("Could not construct type '{}'", self.canonical_name) }
         match self.constructor.get(index) {
             None => {
                 let mut sup_op = self.supertype.clone();
@@ -147,7 +147,7 @@ impl Type {
         let sup_op = self.supertype.clone();
         return match self.instance_functions.get(&*name.clone()) {
             None => match sup_op {
-                None => panic!(),
+                None => panic!("Failed to get instance function '{}' on type '{}", name, self.canonical_name),
                 Some(supertype_ref) => supertype_ref.get().borrow().get_instance_func(name),
             },
             Some(thing) => thing.clone(),
