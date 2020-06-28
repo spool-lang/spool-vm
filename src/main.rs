@@ -48,7 +48,6 @@ fn main() {
     }
 
     let mut vm = VM::new(string_pool, type_registry);
-    println!("{:?}", bytecode);
     match main {
         None => panic!("Main function not found in loaded bytecode."),
         Some(chunk) => vm.run(chunk),
