@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 rand = "0.7.3"
+zip = "0.5.6"
