@@ -35,7 +35,9 @@ impl Property {
 #[derive(Debug)]
 pub struct Type {
     pub(crate) canonical_name: Rc<String>,
+    is_trait: bool,
     supertype: Option<TypeRef>,
+    traits: Vec<TypeRef>,
     constructor: Vec<Function>,
     ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
@@ -43,10 +45,12 @@ pub struct Type {
 }
 
 impl Type {
-    pub(crate) fn new(canonical_name: Rc<String>, supertype: Option<TypeRef>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>, prop_map: HashMap<Rc<String>, Mut<Property>>) -> Type {
+    pub(crate) fn new(canonical_name: Rc<String>, is_trait: bool, supertype: Option<TypeRef>, traits: Vec<TypeRef>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>, prop_map: HashMap<Rc<String>, Mut<Property>>) -> Type {
         Type {
             canonical_name,
+            is_trait,
             supertype,
+            traits,
             constructor: ctors,
             ctorable,
             instance_functions,
@@ -130,7 +134,8 @@ impl Type {
     }
 
     pub(crate) fn get_ctor(&self, index: usize) -> Function {
-        if !self.ctorable { panic!("Could not construct type '{}'", self.canonical_name) }
+        if self.is_trait { panic!("Type '{}' is a trait and cannot be constructed.") }
+        if !self.ctorable { panic!("Type '{}' does not have a constructor.", self.canonical_name) }
         match self.constructor.get(index) {
             None => {
                 let mut sup_op = self.supertype.clone();
@@ -220,7 +225,9 @@ impl Clone for TypeRef {
 
 pub(crate) struct TypeBuilder {
     canonical_name: Rc<String>,
+    is_trait: bool,
     supertype: Option<TypeRef>,
+    traits: Vec<TypeRef>,
     ctors: Vec<Function>,
     ctorable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
@@ -232,7 +239,9 @@ impl TypeBuilder {
     pub(crate) fn new(canonical_name: Rc<String>) -> TypeBuilder {
         TypeBuilder {
             canonical_name,
+            is_trait: false,
             supertype: None,
+            traits: vec![],
             ctors: vec![],
             ctorable: false,
             instance_functions: Default::default(),
@@ -243,6 +252,11 @@ impl TypeBuilder {
 
     pub(crate) fn supertype(mut self, supertype: TypeRef) -> TypeBuilder {
         self.supertype = Some(supertype);
+        return self
+    }
+
+    pub(crate) fn add_trait(mut self, _trait: TypeRef) -> TypeBuilder {
+        self.traits.push(_trait);
         return self
     }
 
@@ -279,7 +293,7 @@ impl TypeBuilder {
     }
 
     pub(crate) fn build(self) -> Type {
-        Type::new(self.canonical_name, self.supertype, self.ctors, self.ctorable, self.instance_functions, self.prop_map)
+        Type::new(self.canonical_name, self.is_trait, self.supertype, self.traits, self.ctors, self.ctorable, self.instance_functions, self.prop_map)
     }
 }
 
