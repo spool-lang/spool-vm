@@ -68,6 +68,14 @@ impl Type {
             },
         }
 
+        let mut trait_iter = self.traits.iter_mut();
+
+        trait_iter.for_each(|trait_ref| {
+           if !trait_ref.is_resolved() {
+               trait_ref.resolve_type(registry)
+           }
+        });
+
         let mut constructor_iter = self.constructor.iter_mut();
 
         constructor_iter.for_each(|constructor| {
