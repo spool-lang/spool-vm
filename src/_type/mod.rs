@@ -121,16 +121,22 @@ impl Type {
     pub(crate) fn is_or_subtype_of(&self, other: Mut<Type>) -> bool {
         let mut other = other;
 
-        loop {
-            if &*self.canonical_name == &*other.borrow().canonical_name {
-                return true
-            }
+        if &*self.canonical_name == &*other.borrow().canonical_name {
+            return true
+        }
 
-            return match &other.borrow().supertype {
-                None => false,
-                Some(supertype_ref) => self.is_or_subtype_of(supertype_ref.get())
+        match &other.borrow().supertype {
+            None => return false,
+            Some(supertype_ref) => {
+                if self.is_or_subtype_of(supertype_ref.get()) { return true }
+
+                for _trait in &self.traits {
+                    if self.is_or_subtype_of(_trait.get()) { return true }
+                }
             }
         }
+
+        return false
     }
 
     pub(crate) fn get_ctor(&self, index: usize) -> Function {
