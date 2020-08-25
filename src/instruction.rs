@@ -745,7 +745,7 @@ fn load_property(feed: &mut ByteFeed, string_pool: &mut StringPool) -> Property 
 
 fn test_constructor(vm: &mut VM, uninitialized: &Instance, args: Vec<Instance>) {
     if let Object(_type, data) = uninitialized {
-        crate::_type::object_type::constructor(vm, uninitialized, args);
+        crate::_type::object::constructor(vm, uninitialized, args);
         data.set(vm.pool_string("funny"), Bool(false), vm.type_from_name("spool.core.Boolean"));
         return;
     }
