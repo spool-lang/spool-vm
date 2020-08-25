@@ -54,15 +54,6 @@ fn main() {
     }
 }
 
-fn load_bytecode(filename: &str) -> Vec<u8> {
-    let contents = fs::read(filename);
-
-    match contents {
-        Ok(bytes) => bytes,
-        Err(_) => panic!(),
-    }
-}
-
 fn print_bytes(bytes: &Vec<u8>, from: usize, to: usize) {
     let mut iter = bytes.iter();
     let mut index = 0;
