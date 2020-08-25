@@ -31,11 +31,16 @@ mod _type;
 fn main() {
     let args: Vec<String> = env::args().collect();
 
+    if args.len() < 2 {
+        println!("Please specify archive to run.");
+        return;
+    }
+
     let mut vm = VM::new();
-    vm.load("test.zip");
+    vm.load(args.get(1).unwrap());
     match vm.run() {
-        Ok(_) => print!("VM ran successfully."),
-        Err(exception) => print!("{}", exception),
+        Ok(_) => println!("VM ran successfully."),
+        Err(exception) => println!("{}", exception),
     };
 }
 
