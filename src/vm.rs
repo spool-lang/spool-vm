@@ -12,6 +12,7 @@ use crate::vm::InstructionResult::{GoTo, Next, ReturnVoid, ReturnValue};
 use crate::_type::{Type, TypeRegistry};
 use zip::ZipArchive;
 use std::io::Read;
+use crate::util::RuntimeException;
 
 pub(crate) type Mut<T> = Rc<RefCell<T>>;
 type MutVec<T> = Vec<Mut<T>>;
@@ -93,15 +94,16 @@ impl VM {
         }
     }
 
-    pub(crate) fn run(&mut self) {
-        match &self.main {
-            None => return,
+    pub(crate) fn run(&mut self) -> Result<(), RuntimeException> {
+        return match &self.main {
+            None => return Err(RuntimeException::NoMainFunction),
             Some(chunk) => {
                 self.type_registry.resolve_supertypes();
 
                 let frame = CallFrame::new(Rc::clone(&chunk));
                 self.push_call_frame(frame);
                 self.execute();
+                Ok(())
             },
         }
     }

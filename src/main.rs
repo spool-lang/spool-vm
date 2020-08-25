@@ -18,11 +18,13 @@ use crate::_type::TypeRegistry;
 use std::fs::File;
 use zip::ZipArchive;
 use zip::result::ZipError;
+use crate::util::RuntimeException;
 
 mod vm;
 mod instruction;
 mod instance;
 mod string_pool;
+mod util;
 
 mod _type;
 
@@ -31,7 +33,10 @@ fn main() {
 
     let mut vm = VM::new();
     vm.load("test.zip");
-    vm.run();
+    match vm.run() {
+        Ok(_) => print!("VM ran successfully."),
+        Err(exception) => print!("{}", exception),
+    };
 }
 
 fn print_bytes(bytes: &Vec<u8>, from: usize, to: usize) {
