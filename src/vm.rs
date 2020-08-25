@@ -7,9 +7,11 @@ use std::sync::Arc;
 use crate::instance::Instance::*;
 use crate::string_pool::StringPool;
 use crate::instance::{Instance, Function};
-use crate::instruction::{Chunk, Instruction};
+use crate::instruction::{Chunk, Instruction, Bytecode};
 use crate::vm::InstructionResult::{GoTo, Next, ReturnVoid, ReturnValue};
 use crate::_type::{Type, TypeRegistry};
+use zip::ZipArchive;
+use std::io::Read;
 
 pub(crate) type Mut<T> = Rc<RefCell<T>>;
 type MutVec<T> = Vec<Mut<T>>;
@@ -20,27 +22,88 @@ pub struct VM {
     frame_stack: MutVec<CallFrame>,
     register: VMRegister,
     string_pool: StringPool,
-    type_registry: TypeRegistry
+    type_registry: TypeRegistry,
+    main: Option<Rc<Chunk>>
 }
 
 impl VM {
-    pub(crate) fn new(string_pool: StringPool, type_registry: TypeRegistry) -> VM {
+    pub(crate) fn new() -> VM {
+        let mut string_pool = StringPool::new();
+        let mut type_registry = TypeRegistry::new(&mut string_pool);
+
         VM {
             stack: vec![],
             type_stack: vec![],
             frame_stack: vec![],
             register: VMRegister::new(),
             string_pool,
-            type_registry
+            type_registry,
+            main: None
         }
     }
 
-    pub(crate) fn run(&mut self, chunk: Rc<Chunk>) {
-        self.type_registry.resolve_supertypes();
+    pub fn load(&mut self, zip_name: &str) {
+        let result = std::fs::File::open(zip_name);
+        let mut bytecode_vec: Vec<Bytecode> = vec![];
 
-        let frame = CallFrame::new(chunk);
-        self.push_call_frame(frame);
-        self.execute();
+        match result {
+            Ok(file) => {
+                match ZipArchive::new(file) {
+                    Ok(mut archive) => {
+                        for i in 0..archive.len() {
+                            let mut file = archive.by_index(i).unwrap();
+                            let mut slice: &[u8] = &[0u8; 65535];
+                            let mut buf: Vec<u8> = Vec::from(slice);
+
+                            match file.read(&mut buf) {
+                                Ok(count) => buf.truncate(count),
+                                Err(err) => println!("Error occurred when reading zip file: {}", err),
+                            }
+
+                            let vec = Bytecode::from_bytes(buf, &mut self.string_pool);
+                            for bytecode in vec {
+                                bytecode_vec.push(bytecode)
+                            }
+                        }
+                    },
+                    Err(error) => {
+                        println!("Error occurred when reading zip file: {}", error);
+                        panic!()
+                    },
+                }
+            },
+            Err(error) => {
+                println!("Error occurred when loading zip file: {}", error);
+                panic!()
+            },
+        };
+
+        let mut bytecode_iter = bytecode_vec.iter();
+
+        loop {
+            match bytecode_iter.next() {
+                None => break,
+                Some(bytecode) => match bytecode {
+                    Bytecode::LoadedMain(main_chunk) => {
+                        self.main = Some(Rc::clone(main_chunk));
+                    },
+                    Bytecode::LoadedType(_type) => self.type_registry.register_ref(_type),
+                },
+            }
+        }
+    }
+
+    pub(crate) fn run(&mut self) {
+        match &self.main {
+            None => return,
+            Some(chunk) => {
+                self.type_registry.resolve_supertypes();
+
+                let frame = CallFrame::new(Rc::clone(&chunk));
+                self.push_call_frame(frame);
+                self.execute();
+            },
+        }
     }
 
     pub fn type_from_name(&self, name: &str) -> Mut<Type> {
