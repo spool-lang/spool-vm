@@ -40,23 +40,23 @@ pub struct Type {
     is_trait: bool,
     supertype: Option<TypeRef>,
     traits: Vec<TypeRef>,
-    constructor: Vec<Function>,
-    ctorable: bool,
+    constructors: Vec<Function>,
+    constructable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
-    prop_map: HashMap<Rc<String>, Mut<Property>>,
+    property_map: HashMap<Rc<String>, Mut<Property>>,
 }
 
 impl Type {
-    pub(crate) fn new(canonical_name: Rc<String>, is_trait: bool, supertype: Option<TypeRef>, traits: Vec<TypeRef>, ctors: Vec<Function>, ctorable: bool, instance_functions: HashMap<Rc<String>, Function>, prop_map: HashMap<Rc<String>, Mut<Property>>) -> Type {
+    pub(crate) fn new(canonical_name: Rc<String>, is_trait: bool, supertype: Option<TypeRef>, traits: Vec<TypeRef>, constructors: Vec<Function>, constructable: bool, instance_functions: HashMap<Rc<String>, Function>, property_map: HashMap<Rc<String>, Mut<Property>>) -> Type {
         Type {
             canonical_name,
             is_trait,
             supertype,
             traits,
-            constructor: ctors,
-            ctorable,
+            constructors,
+            constructable,
             instance_functions,
-            prop_map
+            property_map
         }
     }
 
@@ -78,7 +78,7 @@ impl Type {
            }
         });
 
-        let mut constructor_iter = self.constructor.iter_mut();
+        let mut constructor_iter = self.constructors.iter_mut();
 
         constructor_iter.for_each(|constructor| {
             if let Constructor(params, _) = constructor {
@@ -111,7 +111,7 @@ impl Type {
             }
         }
 
-        let mut prop_iter = self.prop_map.iter_mut();
+        let mut prop_iter = self.property_map.iter_mut();
 
         loop {
             match &mut prop_iter.next() {
@@ -151,8 +151,8 @@ impl Type {
 
     pub(crate) fn get_ctor(&self, index: usize) -> Function {
         if self.is_trait { panic!("Type '{}' is a trait and cannot be constructed.") }
-        if !self.ctorable { panic!("Type '{}' does not have a constructor.", self.canonical_name) }
-        match self.constructor.get(index) {
+        if !self.constructable { panic!("Type '{}' does not have a constructor.", self.canonical_name) }
+        match self.constructors.get(index) {
             None => {
                 let mut sup_op = self.supertype.clone();
                 match &mut sup_op {
@@ -176,7 +176,7 @@ impl Type {
     }
 
     pub(crate) fn get_property(&self, name: Rc<String>) -> Mut<Property> {
-        match self.prop_map.get(&name) {
+        match self.property_map.get(&name) {
             None => {
                 let sup_op = self.supertype.clone();
                 match sup_op {
@@ -189,7 +189,7 @@ impl Type {
     }
 
     pub(crate) fn create_instance_data(&self) -> InstanceData {
-        return InstanceData::new(&self.prop_map)
+        return InstanceData::new(&self.property_map)
     }
 }
 
