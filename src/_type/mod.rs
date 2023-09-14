@@ -244,8 +244,8 @@ pub(crate) struct TypeBuilder {
     is_trait: bool,
     supertype: Option<TypeRef>,
     traits: Vec<TypeRef>,
-    ctors: Vec<Function>,
-    ctorable: bool,
+    constructors: Vec<Function>,
+    constructable: bool,
     instance_functions: HashMap<Rc<String>, Function>,
     prop_map: HashMap<Rc<String>, Rc<RefCell<Property>>>,
     props: Vec<Rc<Property>>
@@ -258,8 +258,8 @@ impl TypeBuilder {
             is_trait: false,
             supertype: None,
             traits: vec![],
-            ctors: vec![],
-            ctorable: false,
+            constructors: vec![],
+            constructable: false,
             instance_functions: Default::default(),
             prop_map: Default::default(),
             props: vec![]
@@ -277,19 +277,19 @@ impl TypeBuilder {
     }
 
     pub(crate) fn constructor(mut self, constructor: Function) -> TypeBuilder {
-        self.ctors.push(constructor);
-        self.ctorable = true;
+        self.constructors.push(constructor);
+        self.constructable = true;
         return self
     }
 
     pub(crate) fn native_constructor(mut self, arity: u8, ctor: fn(&mut VM, &Instance, Vec<Instance>)) -> TypeBuilder {
-        self.ctors.push(NativeConstructor(arity, ctor));
-        self.ctorable = true;
+        self.constructors.push(NativeConstructor(arity, ctor));
+        self.constructable = true;
         self
     }
 
     pub(crate) fn ctorable(mut self, ctorable: bool) -> TypeBuilder {
-        self.ctorable = ctorable;
+        self.constructable = ctorable;
         self
     }
 
@@ -309,7 +309,7 @@ impl TypeBuilder {
     }
 
     pub(crate) fn build(self) -> Type {
-        Type::new(self.canonical_name, self.is_trait, self.supertype, self.traits, self.ctors, self.ctorable, self.instance_functions, self.prop_map)
+        Type::new(self.canonical_name, self.is_trait, self.supertype, self.traits, self.constructors, self.constructable, self.instance_functions, self.prop_map)
     }
 }
 
