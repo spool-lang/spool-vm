@@ -382,4 +382,12 @@ impl TypeRegistry {
             Some(_type) => Rc::clone(_type),
         }
     }
+
+    pub(crate) fn get_by_ref(&self, type_ref: TypeRef) -> Mut<Type> {
+        let name = type_ref.name;
+        match self.types.get(&name) {
+            None => panic!("Type {} does not exist.", name),
+            Some(_type) => Rc::clone(_type),
+        }
+    }
 }

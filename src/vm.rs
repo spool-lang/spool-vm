@@ -577,12 +577,14 @@ impl VM {
         match function {
             Function::Standard(param_types, chunk) => {
                 let mut args: Vec<Instance> = vec![];
-                for param_type in param_types {
-                    let instance = self.pop_stack();
-                    let instance_type = self.type_registry.get(instance.get_canonical_name());
-                    if !param_type.get().borrow().is_or_subtype_of(instance_type) { panic!() }
+                for param_type_ref in param_types {
+                    let arg = self.pop_stack();
+                    let arg_type = self.type_registry.get(arg.get_canonical_name());
+                    let param_type = self.type_registry.get_by_ref(param_type_ref);
 
-                    args.push(instance)
+                    if !param_type.borrow().is_or_subtype_of(arg_type) { panic!() }
+
+                    args.push(arg)
                 }
 
                 args.reverse();
@@ -606,10 +608,12 @@ impl VM {
             Function::Instance(instance_type, param_types, chunk) => {
                 let mut args: Vec<Instance> = vec![];
 
-                for param_type in param_types {
+                for param_type_ref in param_types {
                     let arg_instance = self.pop_stack();
-                    let instance_type = self.type_registry.get(arg_instance.get_canonical_name());
-                    if !param_type.get().borrow().is_or_subtype_of(instance_type) { panic!() }
+                    let arg_type = self.type_registry.get(arg_instance.get_canonical_name());
+                    let param_type = self.type_registry.get_by_ref(param_type_ref);
+
+                    if !param_type.borrow().is_or_subtype_of(arg_type) { panic!() }
 
                     args.push(arg_instance)
                 }
@@ -641,10 +645,12 @@ impl VM {
             Function::Constructor(param_types, chunk) => {
                 let mut args: Vec<Instance> = vec![];
 
-                for param_type in param_types {
+                for param_type_ref in param_types {
                     let arg_instance = self.pop_stack();
-                    let instance_type = self.type_registry.get(arg_instance.get_canonical_name());
-                    if !param_type.get().borrow().is_or_subtype_of(instance_type) { panic!() }
+                    let arg_type = self.type_registry.get(arg_instance.get_canonical_name());
+                    let param_type = self.type_registry.get_by_ref(param_type_ref);
+
+                    if !param_type.borrow().is_or_subtype_of(arg_type) { panic!() }
 
                     args.push(arg_instance)
                 }
@@ -704,7 +710,6 @@ impl VM {
                     }
                 }
             },
-            _ => panic!()
         }
     }
 
