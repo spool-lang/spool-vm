@@ -390,4 +390,16 @@ impl TypeRegistry {
             Some(_type) => Rc::clone(_type),
         }
     }
+
+    pub(crate) fn get_all_supertypes(&self, _type: &Mut<Type>) -> Vec<Mut<Type>> {
+        
+
+        let mut supertypes: Vec<Mut<Type>> = vec![];
+
+        while true {
+
+        }
+
+        return supertypes
+    }
 }
